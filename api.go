@@ -19,13 +19,13 @@ func main() {
 		log.Println("Error loading .env file")
 	}
 
+	// Database setup
 	dbHost := envOrDefault("DATABASE_HOST", "localhost")
 	dbPort := envOrDefault("DATABASE_PORT", "5432")
 	dbUser := envOrDefault("DATABASE_USERNAME", "postgres")
 	dbPassword := envOrDefault("DATABASE_PASSWORD", "postgres")
 	dbName := envOrDefault("DATABASE_NAME", "postgres")
 	dbSsl := envOrDefault("DATABASE_SSL", "disable")
-
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		dbHost, dbUser, dbPassword, dbName, dbPort, dbSsl,
@@ -34,6 +34,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
+
+	// Adds his
+	db.AutoMigrate(&his{})
 
 	http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
@@ -49,9 +52,9 @@ func main() {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		var his []his
-		db.Where("pointId = ?", pointId).Find(&his)
-		log.Printf("%s", his)
+		var sqlResult []his
+		db.Where(&his{PointId: pointId}).Find(&sqlResult)
+		log.Printf("%s", sqlResult)
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Hello, %q", pointId)
