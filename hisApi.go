@@ -2,48 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"html"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file")
-	}
-
-	// Database setup
-	dbHost := envOrDefault("DATABASE_HOST", "localhost")
-	dbPort := envOrDefault("DATABASE_PORT", "5432")
-	dbUser := envOrDefault("DATABASE_USERNAME", "postgres")
-	dbPassword := envOrDefault("DATABASE_PASSWORD", "postgres")
-	dbName := envOrDefault("DATABASE_NAME", "postgres")
-	dbSsl := envOrDefault("DATABASE_SSL", "disable")
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		dbHost, dbUser, dbPassword, dbName, dbPort, dbSsl,
-	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	// Adds his
-	db.AutoMigrate(&his{})
-
-	http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-	})
+func registerHis(db *gorm.DB) {
 
 	// GET /his/:pointId?start=...&end=...
 	// Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
@@ -107,17 +75,4 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write(httpJson)
 	})
-
-	port := 8080
-	log.Printf("Serving at http://localhost:%d", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
-}
-
-func envOrDefault(name string, def string) string {
-	value, ok := os.LookupEnv("DATABASE_HOST")
-	if ok {
-		return value
-	} else {
-		return def
-	}
 }
