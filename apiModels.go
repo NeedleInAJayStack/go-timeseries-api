@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 )
 
 type apiHis struct {
@@ -15,4 +16,11 @@ type apiHis struct {
 type apiHisItem struct {
 	Ts    *time.Time `json:"ts"`
 	Value *float64   `json:"value"`
+}
+
+type apiRec struct {
+	ID   uuid.UUID      `json:"id"`
+	Tags datatypes.JSON `json:"tags"`
+	Dis  *string        `json:"dis"`
+	Unit *string        `json:"unit"`
 }

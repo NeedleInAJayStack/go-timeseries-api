@@ -34,9 +34,10 @@ func main() {
 	}
 
 	// Adds his
-	db.AutoMigrate(&his{})
+	db.AutoMigrate(&his{}, &rec{})
 
 	registerHis(db)
+	registerRecs(db)
 
 	port := 8080
 	log.Printf("Serving at http://localhost:%d", port)
