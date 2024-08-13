@@ -11,3 +11,8 @@ type apiHis struct {
 	Ts      *time.Time `json:"ts"`
 	Value   *float64   `json:"value"`
 }
+
+type apiHisItem struct {
+	Ts    *time.Time `json:"ts"`
+	Value *float64   `json:"value"`
+}

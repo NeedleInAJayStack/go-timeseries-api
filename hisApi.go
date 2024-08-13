@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func registerHis(db *gorm.DB) {
@@ -16,6 +18,7 @@ func registerHis(db *gorm.DB) {
 	// GET /his/:pointId?start=...&end=...
 	// Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 	http.HandleFunc("GET /his/{pointId}", func(w http.ResponseWriter, request *http.Request) {
+		// Test: curl -f 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
 		pointIdString := request.PathValue("pointId")
 		pointId, err := uuid.Parse(pointIdString)
 		if err != nil {
@@ -54,7 +57,12 @@ func registerHis(db *gorm.DB) {
 			}
 			query.Where("ts < ?", time.Unix(end, 0))
 		}
-		query.Order("ts asc").Find(&sqlResult)
+		err = query.Order("ts asc").Find(&sqlResult).Error
+		if err != nil {
+			log.Printf("SQL Error: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		var httpResult []apiHis
 		for _, sqlRow := range sqlResult {
@@ -74,5 +82,43 @@ func registerHis(db *gorm.DB) {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write(httpJson)
+	})
+
+	// POST /his/:pointId
+	http.HandleFunc("POST /his/{pointId}", func(writer http.ResponseWriter, request *http.Request) {
+		// Test: curl -f --json '{ "ts": "2024-08-12T10:51:55.669499-06:00", "value": 2 }' 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
+		pointIdString := request.PathValue("pointId")
+		pointId, err := uuid.Parse(pointIdString)
+		if err != nil {
+			log.Printf("Invalid UUID: %s", pointIdString)
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+		decoder := json.NewDecoder(request.Body)
+		var hisItem apiHisItem
+		err = decoder.Decode(&hisItem)
+		if err != nil {
+			log.Printf("Cannot decode request JSON: %s", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		his := his{
+			PointId: pointId,
+			Ts:      hisItem.Ts,
+			Value:   sql.NullFloat64{Float64: *hisItem.Value, Valid: hisItem.Value != nil},
+		}
+
+		err = db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "pointId"}, {Name: "ts"}},
+			DoUpdates: clause.AssignmentColumns([]string{"value"}),
+		}).Create(&his).Error
+		if err != nil {
+			log.Printf("SQL Error: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writer.WriteHeader(http.StatusOK)
 	})
 }
