@@ -121,4 +121,56 @@ func registerHis(db *gorm.DB) {
 
 		writer.WriteHeader(http.StatusOK)
 	})
+
+	// DELETE /his/:pointId?start=...&end=...
+	// Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
+	http.HandleFunc("DELETE /his/{pointId}", func(writer http.ResponseWriter, request *http.Request) {
+		// Test: curl -X "DELETE" 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
+		pointIdString := request.PathValue("pointId")
+		pointId, err := uuid.Parse(pointIdString)
+		if err != nil {
+			log.Printf("Invalid UUID: %s", pointIdString)
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+		err = request.ParseForm()
+		if err != nil {
+			log.Printf("Cannot parse form: %s", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		params := request.Form
+
+		var sqlResult []his
+		query := db.Where(&his{PointId: pointId})
+		// TODO: Change start/end to ISO8601
+		if params["start"] != nil {
+			startStr := params["start"][0]
+			start, err := strconv.ParseInt(startStr, 0, 64)
+			if err != nil {
+				log.Printf("Cannot parse time: %s", startStr)
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			query.Where("ts >= ?", time.Unix(start, 0))
+		}
+		if params["end"] != nil {
+			endStr := params["end"][0]
+			end, err := strconv.ParseInt(endStr, 0, 64)
+			if err != nil {
+				log.Printf("Cannot parse time: %s", endStr)
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			query.Where("ts < ?", time.Unix(end, 0))
+		}
+		err = query.Delete(&sqlResult).Error
+		if err != nil {
+			log.Printf("SQL Error: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writer.WriteHeader(http.StatusOK)
+	})
 }
