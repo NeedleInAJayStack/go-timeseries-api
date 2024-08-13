@@ -8,7 +8,7 @@ import (
 )
 
 type his struct {
-	PointId uuid.UUID `gorm:"column:pointId"`
-	Ts      *time.Time
-	Value   sql.NullFloat64
+	PointId uuid.UUID       `gorm:"column:pointId;type:uuid;primaryKey:pk_his;index:his_pointId_ts_idx"`
+	Ts      *time.Time      `gorm:"primaryKey:pk_his;index:his_pointId_ts_idx,sort:desc;index:his_ts_idx,sort:desc"`
+	Value   sql.NullFloat64 `gorm:"type:double precision"`
 }
