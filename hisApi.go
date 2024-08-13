@@ -64,7 +64,7 @@ func registerHis(db *gorm.DB) {
 			return
 		}
 
-		var httpResult []apiHis
+		httpResult := []apiHis{}
 		for _, sqlRow := range sqlResult {
 			var value *float64
 			if sqlRow.Value.Valid {
