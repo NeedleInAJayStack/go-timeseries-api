@@ -1,0 +1,20 @@
+# API Server
+
+This is Jay's API for different datasets. It requires a Timescale DB instance.
+
+## Getting Started
+
+Create a `.env` file in this directory that contains necessary environment variables. For example:
+
+```
+USERNAME=<username>
+PASSWORD=<password>
+JWT_SECRET=<password>
+
+DATABASE_HOST=<host>
+DATABASE_PORT=<port>
+DATABASE_USERNAME=<username>
+DATABASE_PASSWORD=<password>
+DATABASE_NAME=<name>
+```
+

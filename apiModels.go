@@ -26,5 +26,5 @@ type apiRec struct {
 }
 
 type clientToken struct {
-	Token string `json: token`
+	Token string `json:"token"`
 }
