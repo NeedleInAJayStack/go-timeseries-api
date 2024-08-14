@@ -24,3 +24,7 @@ type apiRec struct {
 	Dis  *string        `json:"dis"`
 	Unit *string        `json:"unit"`
 }
+
+type clientToken struct {
+	Token string `json: token`
+}

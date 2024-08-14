@@ -33,9 +33,15 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
+	// Auth setup
+	username := os.Getenv("USERNAME")
+	password := os.Getenv("PASSWORD")
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	// Adds his
 	db.AutoMigrate(&his{}, &rec{})
 
+	registerAuth(jwtSecret, username, password)
 	registerHis(db)
 	registerRecs(db)
 
@@ -45,7 +51,7 @@ func main() {
 }
 
 func envOrDefault(name string, def string) string {
-	value, ok := os.LookupEnv("DATABASE_HOST")
+	value, ok := os.LookupEnv(name)
 	if ok {
 		return value
 	} else {
