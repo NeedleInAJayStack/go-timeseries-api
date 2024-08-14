@@ -42,8 +42,19 @@ func main() {
 	db.AutoMigrate(&his{}, &rec{})
 
 	registerAuth(jwtSecret, username, password)
-	registerHis(db)
-	registerRecs(db)
+
+	hisController := hisController{db: db}
+	http.HandleFunc("GET /his/{pointId}", hisController.getHis)
+	http.HandleFunc("POST /his/{pointId}", hisController.postHis)
+	http.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis)
+
+	recController := recController{db: db}
+	http.HandleFunc("GET /recs", recController.getRecs)
+	http.HandleFunc("POST /recs", recController.postRecs)
+	http.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag)
+	http.HandleFunc("GET /recs/{id}", recController.getRec)
+	http.HandleFunc("PUT /recs/{id}", recController.putRec)
+	http.HandleFunc("DELETE /recs/{id}", recController.deleteRec)
 
 	port := 8080
 	log.Printf("Serving at http://localhost:%d", port)
