@@ -22,7 +22,13 @@ type authController struct {
 // Requires basic auth
 func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	reqUsername, reqPassword, _ := r.BasicAuth()
-	if reqUsername != a.username || reqPassword != a.password {
+	if reqUsername != a.username {
+		log.Printf("Invalid username: %s", reqUsername)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if reqPassword != a.password {
+		log.Printf("Invalid password")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
