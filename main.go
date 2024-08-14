@@ -17,6 +17,12 @@ func main() {
 		log.Println("Error loading .env file")
 	}
 
+	// Auth setup
+	username := os.Getenv("USERNAME")
+	password := os.Getenv("PASSWORD")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	tokenDurationSeconds := 60 * 60 // 1 hour
+
 	// Database setup
 	dbHost := envOrDefault("DATABASE_HOST", "localhost")
 	dbPort := envOrDefault("DATABASE_PORT", "5432")
@@ -33,39 +39,38 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
-	// Auth setup
-	username := os.Getenv("USERNAME")
-	password := os.Getenv("PASSWORD")
-	jwtSecret := os.Getenv("JWT_SECRET")
-	tokenDurationSeconds := 60 * 60 // 1 hour
-
-	// Adds his
 	db.AutoMigrate(&his{}, &rec{})
 
+	// Register paths
+	server := http.NewServeMux()
 	authController := authController{
 		jwtSecret:            jwtSecret,
 		tokenDurationSeconds: tokenDurationSeconds,
 		username:             username,
 		password:             password,
 	}
-	http.HandleFunc("GET /his/{pointId}", authController.getAuthToken)
+	server.HandleFunc("GET /auth/token", authController.getAuthToken)
+
+	tokenAuth := http.NewServeMux()
 
 	hisController := hisController{db: db}
-	http.HandleFunc("GET /his/{pointId}", hisController.getHis)
-	http.HandleFunc("POST /his/{pointId}", hisController.postHis)
-	http.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis)
+	tokenAuth.HandleFunc("GET /his/{pointId}", hisController.getHis)
+	tokenAuth.HandleFunc("POST /his/{pointId}", hisController.postHis)
+	tokenAuth.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis)
+	server.Handle("/his/", tokenAuthMiddleware(jwtSecret, tokenAuth))
 
 	recController := recController{db: db}
-	http.HandleFunc("GET /recs", recController.getRecs)
-	http.HandleFunc("POST /recs", recController.postRecs)
-	http.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag)
-	http.HandleFunc("GET /recs/{id}", recController.getRec)
-	http.HandleFunc("PUT /recs/{id}", recController.putRec)
-	http.HandleFunc("DELETE /recs/{id}", recController.deleteRec)
+	tokenAuth.HandleFunc("GET /recs", recController.getRecs)
+	tokenAuth.HandleFunc("POST /recs", recController.postRecs)
+	tokenAuth.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag)
+	tokenAuth.HandleFunc("GET /recs/{id}", recController.getRec)
+	tokenAuth.HandleFunc("PUT /recs/{id}", recController.putRec)
+	tokenAuth.HandleFunc("DELETE /recs/{id}", recController.deleteRec)
+	server.Handle("/recs/", tokenAuthMiddleware(jwtSecret, tokenAuth))
 
 	port := 8080
 	log.Printf("Serving at http://localhost:%d", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), server))
 }
 
 func envOrDefault(name string, def string) string {

@@ -57,7 +57,7 @@ func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tokenString string
-		for _, headerValue := range r.Header["Accept"] {
+		for _, headerValue := range r.Header["Authorization"] {
 			if strings.HasPrefix(headerValue, "Bearer ") {
 				tokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
 			}
@@ -67,7 +67,7 @@ func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return jwtSecret, nil
+			return []byte(jwtSecret), nil
 		})
 		if err != nil {
 			log.Printf("JWT parsing failed: %s", err)
