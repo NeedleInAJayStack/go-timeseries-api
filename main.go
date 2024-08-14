@@ -37,11 +37,18 @@ func main() {
 	username := os.Getenv("USERNAME")
 	password := os.Getenv("PASSWORD")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	tokenDurationSeconds := 60 * 60 // 1 hour
 
 	// Adds his
 	db.AutoMigrate(&his{}, &rec{})
 
-	registerAuth(jwtSecret, username, password)
+	authController := authController{
+		jwtSecret:            jwtSecret,
+		tokenDurationSeconds: tokenDurationSeconds,
+		username:             username,
+		password:             password,
+	}
+	http.HandleFunc("GET /his/{pointId}", authController.getAuthToken)
 
 	hisController := hisController{db: db}
 	http.HandleFunc("GET /his/{pointId}", hisController.getHis)

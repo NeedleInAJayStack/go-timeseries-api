@@ -2,46 +2,91 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func registerAuth(jwtSecret string, username string, password string) {
+type authController struct {
+	jwtSecret            string
+	tokenDurationSeconds int
+	username             string
+	password             string
+}
 
-	// GET /auth/token
-	// Requires basic auth
-	http.HandleFunc("GET /auth/token", func(w http.ResponseWriter, r *http.Request) {
-		reqUsername, reqPassword, _ := r.BasicAuth()
-		if reqUsername != username || reqPassword != password {
-			w.WriteHeader(http.StatusForbidden)
-			return
+// GET /auth/token
+// Requires basic auth
+func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
+	reqUsername, reqPassword, _ := r.BasicAuth()
+	if reqUsername != a.username || reqPassword != a.password {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"subject":  "go",
+		"username": a.username,
+		"exp":      time.Now().Unix() + int64(a.tokenDurationSeconds),
+	})
+	tokenString, err := token.SignedString([]byte(a.jwtSecret))
+	if err != nil {
+		log.Printf("Unable to sign JWT: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	clientToken := clientToken{
+		Token: tokenString,
+	}
+
+	httpJson, err := json.Marshal(clientToken)
+	if err != nil {
+		log.Printf("Cannot encode response JSON")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(httpJson)
+}
+
+func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var tokenString string
+		for _, headerValue := range r.Header["Accept"] {
+			if strings.HasPrefix(headerValue, "Bearer ") {
+				tokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
+			}
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"subject":  "go",
-			"username": username,
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return jwtSecret, nil
 		})
-		tokenString, err := token.SignedString([]byte(jwtSecret))
 		if err != nil {
-			log.Printf("Unable to sign JWT: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			log.Printf("JWT parsing failed: %s", err)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		clientToken := clientToken{
-			Token: tokenString,
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			log.Printf("JWT claims failed: %s", err)
 		}
-
-		httpJson, err := json.Marshal(clientToken)
-		if err != nil {
-			log.Printf("Cannot encode response JSON")
-			w.WriteHeader(http.StatusInternalServerError)
+		exp, _ := claims.GetExpirationTime()
+		if exp.Before(time.Now()) {
+			log.Printf("JWT expired at: %s", exp)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write(httpJson)
+		// Pass to the next handler
+		next.ServeHTTP(w, r)
 	})
 }
