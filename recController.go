@@ -42,7 +42,7 @@ func (recController recController) getRecs(w http.ResponseWriter, r *http.Reques
 
 	httpJson, err := json.Marshal(httpResult)
 	if err != nil {
-		log.Printf("Cannot encode response JSON")
+		log.Printf("Cannot encode response JSON: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
