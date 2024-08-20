@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/datatypes"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -203,4 +204,255 @@ func (suite *ServerTestSuite) TestPostHis() {
 	// 		Value:   sql.NullFloat64{Float64: value, Valid: true},
 	// 	},
 	// )
+}
+
+func (suite *ServerTestSuite) TestGetRecs() {
+	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
+	recs := []rec{
+		{
+			ID:   id1,
+			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+			Unit: sql.NullString{String: "kW", Valid: true},
+		},
+		{
+			ID:   id2,
+			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Unit: sql.NullString{String: "lb", Valid: true},
+		},
+	}
+	suite.db.Create(&recs)
+
+	request, _ := http.NewRequest(http.MethodGet, "/recs", nil)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	decoder := json.NewDecoder(response.Result().Body)
+	var apiRecs []apiRec
+	assert.Nil(suite.T(), decoder.Decode(&apiRecs))
+
+	rec1 := "rec1"
+	kW := "kW"
+	rec2 := "rec2"
+	lb := "lb"
+	assert.Equal(
+		suite.T(),
+		apiRecs,
+		[]apiRec{
+			{
+				ID:   id1,
+				Dis:  &rec1,
+				Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+				Unit: &kW,
+			},
+			{
+				ID:   id2,
+				Dis:  &rec2,
+				Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+				Unit: &lb,
+			},
+		},
+	)
+}
+
+func (suite *ServerTestSuite) TestPostRecs() {
+	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	rec1 := "rec1"
+	kW := "kW"
+	apiRec := apiRec{
+		ID:   id1,
+		Dis:  &rec1,
+		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+		Unit: &kW,
+	}
+	body, err := json.Marshal(apiRec)
+	assert.Nil(suite.T(), err)
+
+	request, _ := http.NewRequest(http.MethodPost, "/recs", bytes.NewReader(body))
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+
+	var recs []rec
+	suite.db.Find(&recs)
+	assert.Equal(
+		suite.T(),
+		recs,
+		[]rec{
+			{
+				ID:   id1,
+				Dis:  sql.NullString{String: "rec1", Valid: true},
+				Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+				Unit: sql.NullString{String: "kW", Valid: true},
+			},
+		},
+	)
+}
+
+func (suite *ServerTestSuite) TestGetRecsByTag() {
+	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
+	recs := []rec{
+		{
+			ID:   id1,
+			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag1":"value1"}`)),
+			Unit: sql.NullString{String: "kW", Valid: true},
+		},
+		{
+			ID:   id2,
+			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag2":"value2"}`)),
+			Unit: sql.NullString{String: "lb", Valid: true},
+		},
+	}
+	suite.db.Create(&recs)
+
+	request, _ := http.NewRequest(http.MethodGet, "/recs/tag/tag1", nil)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	decoder := json.NewDecoder(response.Result().Body)
+	var apiRecs []apiRec
+	assert.Nil(suite.T(), decoder.Decode(&apiRecs))
+
+	rec1 := "rec1"
+	kW := "kW"
+	assert.Equal(
+		suite.T(),
+		apiRecs,
+		[]apiRec{
+			{
+				ID:   id1,
+				Dis:  &rec1,
+				Tags: datatypes.JSON([]byte(`{"tag1":"value1"}`)),
+				Unit: &kW,
+			},
+		},
+	)
+}
+
+func (suite *ServerTestSuite) TestGetRec() {
+	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
+	recs := []rec{
+		{
+			ID:   id1,
+			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+			Unit: sql.NullString{String: "kW", Valid: true},
+		},
+		{
+			ID:   id2,
+			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Unit: sql.NullString{String: "lb", Valid: true},
+		},
+	}
+	suite.db.Create(&recs)
+
+	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s", id2), nil)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	decoder := json.NewDecoder(response.Result().Body)
+	var rec2 apiRec
+	assert.Nil(suite.T(), decoder.Decode(&rec2))
+
+	rec2Dis := "rec2"
+	lb := "lb"
+	assert.Equal(
+		suite.T(),
+		rec2,
+		apiRec{
+			ID:   id2,
+			Dis:  &rec2Dis,
+			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Unit: &lb,
+		},
+	)
+}
+
+func (suite *ServerTestSuite) TestPutRec() {
+	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	recs := []rec{
+		{
+			ID:   id,
+			Dis:  sql.NullString{String: "rec", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Unit: sql.NullString{String: "kW", Valid: true},
+		},
+	}
+	suite.db.Create(&recs)
+
+	dis := "rec updated"
+	lb := "lb"
+	apiRec := apiRec{
+		ID:   id,
+		Dis:  &dis,
+		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+		Unit: &lb,
+	}
+	body, err := json.Marshal(apiRec)
+	assert.Nil(suite.T(), err)
+
+	request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/recs/%s", id), bytes.NewReader(body))
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+
+	var updatedRec rec
+	suite.db.First(&updatedRec, id)
+	assert.Equal(
+		suite.T(),
+		updatedRec,
+		rec{
+			ID:   id,
+			Dis:  sql.NullString{String: "rec updated", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Unit: sql.NullString{String: "lb", Valid: true},
+		},
+	)
+}
+
+func (suite *ServerTestSuite) TestDeleteRec() {
+	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	recs := []rec{
+		{
+			ID:   id,
+			Dis:  sql.NullString{String: "rec", Valid: true},
+			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Unit: sql.NullString{String: "kW", Valid: true},
+		},
+	}
+	suite.db.Create(&recs)
+
+	request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/recs/%s", id), nil)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+
+	var recCount int64
+	suite.db.Where("id = ?", id).Count(&recCount)
+	assert.Equal(suite.T(), recCount, int64(0))
 }
