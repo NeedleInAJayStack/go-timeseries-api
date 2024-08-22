@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -29,15 +28,7 @@ func (recController recController) getRecs(w http.ResponseWriter, r *http.Reques
 
 	httpResult := []apiRec{}
 	for _, sqlRow := range sqlResult {
-		var dis *string
-		if sqlRow.Dis.Valid {
-			dis = &sqlRow.Dis.String
-		}
-		var unit *string
-		if sqlRow.Unit.Valid {
-			unit = &sqlRow.Unit.String
-		}
-		httpResult = append(httpResult, apiRec{ID: sqlRow.ID, Tags: sqlRow.Tags, Dis: dis, Unit: unit})
+		httpResult = append(httpResult, apiRec(sqlRow))
 	}
 
 	httpJson, err := json.Marshal(httpResult)
@@ -63,12 +54,7 @@ func (recController recController) postRecs(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	rec := rec{
-		ID:   apiRec.ID,
-		Tags: apiRec.Tags,
-		Dis:  sql.NullString{String: *apiRec.Dis, Valid: apiRec.Dis != nil},
-		Unit: sql.NullString{String: *apiRec.Unit, Valid: apiRec.Unit != nil},
-	}
+	rec := rec(apiRec)
 
 	err = recController.db.Create(&rec).Error
 	if err != nil {
@@ -102,20 +88,7 @@ func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.R
 
 	apiRecs := []apiRec{}
 	for _, rec := range recs {
-		var dis *string
-		if rec.Dis.Valid {
-			dis = &rec.Dis.String
-		}
-		var unit *string
-		if rec.Unit.Valid {
-			unit = &rec.Unit.String
-		}
-		apiRecs = append(apiRecs, apiRec{
-			ID:   rec.ID,
-			Tags: rec.Tags,
-			Dis:  dis,
-			Unit: unit,
-		})
+		apiRecs = append(apiRecs, apiRec(rec))
 	}
 
 	httpJson, err := json.Marshal(apiRecs)
@@ -147,20 +120,7 @@ func (recController recController) getRec(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var dis *string
-	if rec.Dis.Valid {
-		dis = &rec.Dis.String
-	}
-	var unit *string
-	if rec.Unit.Valid {
-		unit = &rec.Unit.String
-	}
-	apiRec := apiRec{
-		ID:   rec.ID,
-		Tags: rec.Tags,
-		Dis:  dis,
-		Unit: unit,
-	}
+	apiRec := apiRec(rec)
 
 	httpJson, err := json.Marshal(apiRec)
 	if err != nil {
@@ -202,10 +162,10 @@ func (recController recController) putRec(w http.ResponseWriter, r *http.Request
 	}
 
 	if apiRec.Dis != nil {
-		rec.Dis = sql.NullString{String: *apiRec.Dis, Valid: apiRec.Dis != nil}
+		rec.Dis = apiRec.Dis
 	}
 	if apiRec.Unit != nil {
-		rec.Unit = sql.NullString{String: *apiRec.Unit, Valid: apiRec.Unit != nil}
+		rec.Unit = apiRec.Unit
 	}
 
 	err = recController.db.Save(&rec).Error

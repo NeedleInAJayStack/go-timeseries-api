@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -68,11 +67,7 @@ func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 
 	httpResult := []apiHis{}
 	for _, sqlRow := range sqlResult {
-		var value *float64
-		if sqlRow.Value.Valid {
-			value = &sqlRow.Value.Float64
-		}
-		httpResult = append(httpResult, apiHis{PointId: sqlRow.PointId, Ts: sqlRow.Ts, Value: value})
+		httpResult = append(httpResult, apiHis(sqlRow))
 	}
 
 	httpJson, err := json.Marshal(httpResult)
@@ -109,7 +104,7 @@ func (h hisController) postHis(writer http.ResponseWriter, request *http.Request
 	his := his{
 		PointId: pointId,
 		Ts:      hisItem.Ts,
-		Value:   sql.NullFloat64{Float64: *hisItem.Value, Valid: hisItem.Value != nil},
+		Value:   hisItem.Value,
 	}
 
 	err = h.db.Clauses(clause.OnConflict{

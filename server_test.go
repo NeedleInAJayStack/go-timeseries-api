@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -108,27 +107,27 @@ func (suite *ServerTestSuite) TestGetHis() {
 		{
 			PointId: pointId1,
 			Ts:      &nowMinus15Min,
-			Value:   sql.NullFloat64{Float64: 0.0, Valid: true},
+			Value:   f(0.0),
 		},
 		{
 			PointId: pointId1,
 			Ts:      &nowMinus10Min,
-			Value:   sql.NullFloat64{Float64: 1.1, Valid: true},
+			Value:   f(1.1),
 		},
 		{
 			PointId: pointId1,
 			Ts:      &nowMinus5Min,
-			Value:   sql.NullFloat64{Float64: 2.2, Valid: true},
+			Value:   f(2.2),
 		},
 		{
 			PointId: pointId1,
 			Ts:      &now,
-			Value:   sql.NullFloat64{Float64: 3.3, Valid: true},
+			Value:   f(3.3),
 		},
 		{
 			PointId: pointId2,
 			Ts:      &now,
-			Value:   sql.NullFloat64{Float64: 3.4, Valid: true},
+			Value:   f(3.4),
 		},
 	}
 	suite.db.Create(&dbHistory)
@@ -201,7 +200,7 @@ func (suite *ServerTestSuite) TestPostHis() {
 	// 	his{
 	// 		PointId: pointId,
 	// 		Ts:      &ts,
-	// 		Value:   sql.NullFloat64{Float64: value, Valid: true},
+	// 		Value:   f(value),
 	// 	},
 	// )
 }
@@ -212,15 +211,15 @@ func (suite *ServerTestSuite) TestGetRecs() {
 	recs := []rec{
 		{
 			ID:   id1,
-			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Dis:  s("rec1"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
-			Unit: sql.NullString{String: "kW", Valid: true},
+			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
-			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Dis:  s("rec2"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
-			Unit: sql.NullString{String: "lb", Valid: true},
+			Unit: s("lb"),
 		},
 	}
 	suite.db.Create(&recs)
@@ -289,9 +288,9 @@ func (suite *ServerTestSuite) TestPostRecs() {
 		[]rec{
 			{
 				ID:   id1,
-				Dis:  sql.NullString{String: "rec1", Valid: true},
+				Dis:  s("rec1"),
 				Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
-				Unit: sql.NullString{String: "kW", Valid: true},
+				Unit: s("kW"),
 			},
 		},
 	)
@@ -303,15 +302,15 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 	recs := []rec{
 		{
 			ID:   id1,
-			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Dis:  s("rec1"),
 			Tags: datatypes.JSON([]byte(`{"tag1":"value1"}`)),
-			Unit: sql.NullString{String: "kW", Valid: true},
+			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
-			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Dis:  s("rec2"),
 			Tags: datatypes.JSON([]byte(`{"tag2":"value2"}`)),
-			Unit: sql.NullString{String: "lb", Valid: true},
+			Unit: s("lb"),
 		},
 	}
 	suite.db.Create(&recs)
@@ -349,15 +348,15 @@ func (suite *ServerTestSuite) TestGetRec() {
 	recs := []rec{
 		{
 			ID:   id1,
-			Dis:  sql.NullString{String: "rec1", Valid: true},
+			Dis:  s("rec1"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
-			Unit: sql.NullString{String: "kW", Valid: true},
+			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
-			Dis:  sql.NullString{String: "rec2", Valid: true},
+			Dis:  s("rec2"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
-			Unit: sql.NullString{String: "lb", Valid: true},
+			Unit: s("lb"),
 		},
 	}
 	suite.db.Create(&recs)
@@ -392,9 +391,9 @@ func (suite *ServerTestSuite) TestPutRec() {
 	recs := []rec{
 		{
 			ID:   id,
-			Dis:  sql.NullString{String: "rec", Valid: true},
+			Dis:  s("rec"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
-			Unit: sql.NullString{String: "kW", Valid: true},
+			Unit: s("kW"),
 		},
 	}
 	suite.db.Create(&recs)
@@ -425,9 +424,9 @@ func (suite *ServerTestSuite) TestPutRec() {
 		updatedRec,
 		rec{
 			ID:   id,
-			Dis:  sql.NullString{String: "rec updated", Valid: true},
+			Dis:  s("rec updated"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
-			Unit: sql.NullString{String: "lb", Valid: true},
+			Unit: s("lb"),
 		},
 	)
 }
@@ -437,9 +436,9 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 	recs := []rec{
 		{
 			ID:   id,
-			Dis:  sql.NullString{String: "rec", Valid: true},
+			Dis:  s("rec"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
-			Unit: sql.NullString{String: "kW", Valid: true},
+			Unit: s("kW"),
 		},
 	}
 	suite.db.Create(&recs)
@@ -456,3 +455,7 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 	suite.db.Where("id = ?", id).Count(&recCount)
 	assert.Equal(suite.T(), recCount, int64(0))
 }
+
+// These functions just take literals and return a pointer to them. For easier DB/JSON construction
+func s(s string) *string   { return &s }
+func f(f float64) *float64 { return &f }
