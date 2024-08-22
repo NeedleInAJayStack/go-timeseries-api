@@ -19,7 +19,6 @@ type hisController struct {
 // GET /his/:pointId?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
-	// Test: curl -f 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	pointIdString := request.PathValue("pointId")
 	pointId, err := uuid.Parse(pointIdString)
 	if err != nil {
@@ -84,7 +83,6 @@ func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 // POST /his/:pointId
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) postHis(writer http.ResponseWriter, request *http.Request) {
-	// Test: curl -f --json '{ "ts": "2024-08-12T10:51:55.669499-06:00", "value": 2 }' 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	pointIdString := request.PathValue("pointId")
 	pointId, err := uuid.Parse(pointIdString)
 	if err != nil {
@@ -123,7 +121,6 @@ func (h hisController) postHis(writer http.ResponseWriter, request *http.Request
 // DELETE /his/:pointId?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) deleteHis(writer http.ResponseWriter, request *http.Request) {
-	// Test: curl -X "DELETE" 'http://localhost:8080/his/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	pointIdString := request.PathValue("pointId")
 	pointId, err := uuid.Parse(pointIdString)
 	if err != nil {

@@ -16,8 +16,6 @@ type recController struct {
 
 // GET /recs
 func (recController recController) getRecs(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f 'http://localhost:8080/recs'
-	// SQL seed: INSERT INTO rec VALUES ('424c159f-0eff-4a4d-8873-c2318c1809b1', '{"particleDeviceId": "abc", "particleVariableName": "eco2"}'::jsonb, '1211 Living Room CO2', 'ppm');
 	var sqlResult []rec
 	err := recController.db.Find(&sqlResult).Error
 	if err != nil {
@@ -44,7 +42,6 @@ func (recController recController) getRecs(w http.ResponseWriter, r *http.Reques
 
 // POST /recs
 func (recController recController) postRecs(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f --json '{ "id": "424c159f-0eff-4a4d-8873-c2318c1809b1", "tags": {"particleDeviceId": "abc", "particleVariableName": "eco2"}, "dis": "1211 Living Room CO2", "unit": "ppm" }' 'http://localhost:8080/recs'
 	decoder := json.NewDecoder(r.Body)
 	var apiRec apiRec
 	err := decoder.Decode(&apiRec)
@@ -76,7 +73,6 @@ func (recController recController) postRecs(w http.ResponseWriter, r *http.Reque
 
 // GET /recs/tag/:tag
 func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f 'http://localhost:8080/recs/tag/particleDeviceId'
 	tag := r.PathValue("tag")
 	var recs []rec
 	err := recController.db.Where(datatypes.JSONQuery("tags").HasKey(tag)).Order("dis").Find(&recs).Error
@@ -104,7 +100,6 @@ func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.R
 
 // GET /recs/:id
 func (recController recController) getRec(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f 'http://localhost:8080/recs/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	idString := r.PathValue("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
@@ -135,7 +130,6 @@ func (recController recController) getRec(w http.ResponseWriter, r *http.Request
 
 // PUT /recs/:id
 func (recController recController) putRec(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f -X PUT --json '{ "id": "424c159f-0eff-4a4d-8873-c2318c1809b1", "dis": "test" }' 'http://localhost:8080/recs/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	idString := r.PathValue("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
@@ -180,7 +174,6 @@ func (recController recController) putRec(w http.ResponseWriter, r *http.Request
 
 // DELETE /recs/:id
 func (recController recController) deleteRec(w http.ResponseWriter, r *http.Request) {
-	// Test: curl -f -X DELETE 'http://localhost:8080/recs/424c159f-0eff-4a4d-8873-c2318c1809b1'
 	idString := r.PathValue("id")
 	id, err := uuid.Parse(idString)
 	if err != nil {
