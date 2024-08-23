@@ -9,6 +9,9 @@ Create a `.env` file in this directory that contains necessary environment varia
 ```
 USERNAME=<username>
 PASSWORD=<password>
+
+HOST=<host>
+PORT=<port>
 JWT_SECRET=<password>
 
 DATABASE_HOST=<host>

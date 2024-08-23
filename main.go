@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -46,8 +47,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	port := 8080
-	log.Printf("Serving at http://localhost:%d", port)
+	host := envOrDefault("HOST", "localhost")
+	port, err := strconv.ParseInt(envOrDefault("PORT", "80"), 10, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Serving at http://%s:%d", host, port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), server)
 	if err != nil {
 		log.Fatalf("%s", err)
