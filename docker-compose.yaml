@@ -1,4 +1,14 @@
 services:
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DATABASE_HOST=db
+    ports:
+      - '8080:80'
   db:
     image: timescale/timescaledb:latest-pg16
     restart: unless-stopped
