@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - '${PL_DB_PORT:-5432}:5432'
+      - '${DATABASE_PORT:-5432}:5432'
 
 volumes:
   db_data:
