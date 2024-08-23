@@ -56,5 +56,8 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 	tokenAuth.HandleFunc("DELETE /recs/{id}", recController.deleteRec)
 	server.Handle("/recs/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
+	// Catch all others with public files. Not found fallback is app index for browser router.
+	server.Handle("/", fileServerWithFallback(http.Dir("./public"), "./public/index.html"))
+
 	return server, nil
 }
