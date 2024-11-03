@@ -315,7 +315,7 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 	}
 	suite.db.Create(&recs)
 
-	request, _ := http.NewRequest(http.MethodGet, "/recs/tag/tag1", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/recs?tag=tag1", nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 

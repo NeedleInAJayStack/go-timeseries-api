@@ -50,7 +50,7 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 	tokenAuth.HandleFunc("POST /recs", recController.postRecs)
 	server.Handle("/recs", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
-	tokenAuth.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag)
+	tokenAuth.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag) // Deprecated. Use /recs?tag=""
 	tokenAuth.HandleFunc("GET /recs/{id}", recController.getRec)
 	tokenAuth.HandleFunc("PUT /recs/{id}", recController.putRec)
 	tokenAuth.HandleFunc("DELETE /recs/{id}", recController.deleteRec)

@@ -17,7 +17,12 @@ type recController struct {
 // GET /recs
 func (recController recController) getRecs(w http.ResponseWriter, r *http.Request) {
 	var sqlResult []rec
-	err := recController.db.Find(&sqlResult).Error
+	db := recController.db
+	tag := r.URL.Query().Get("tag")
+	if tag != "" {
+		db = db.Where(datatypes.JSONQuery("tags").HasKey(tag))
+	}
+	err := db.Order("dis").Find(&sqlResult).Error
 	if err != nil {
 		log.Printf("SQL Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -108,7 +113,7 @@ func (recController recController) getRec(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var rec rec
-	err = recController.db.First(&rec, id).Error
+	err = recController.db.First(&rec, "id = ?", id).Error
 	if err != nil {
 		log.Printf("SQL Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
