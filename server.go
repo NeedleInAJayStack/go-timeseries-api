@@ -58,6 +58,10 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 	tokenAuth.HandleFunc("GET /recs/{pointId}/history", hisController.getHis)
 	tokenAuth.HandleFunc("POST /recs/{pointId}/history", hisController.postHis)
 	tokenAuth.HandleFunc("DELETE /recs/{pointId}/history", hisController.getHis)
+
+	currentController := currentController{store: newInMemoryCurrentStore()}
+	tokenAuth.HandleFunc("GET /recs/{pointId}/current", currentController.getCurrent)
+	tokenAuth.HandleFunc("POST /recs/{pointId}/current", currentController.postCurrent)
 	server.Handle("/recs/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
 	// Catch all others with public files. Not found fallback is app index for browser router.

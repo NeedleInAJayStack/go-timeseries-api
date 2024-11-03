@@ -456,6 +456,41 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 	assert.Equal(suite.T(), recCount, int64(0))
 }
 
+func (suite *ServerTestSuite) TestCurrent() {
+	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
+	recs := []rec{
+		{
+			ID:   id,
+			Dis:  s("rec"),
+			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Unit: s("kW"),
+		},
+	}
+	suite.db.Create(&recs)
+
+	value := 123.456
+	currentInput := apiCurrentInput{
+		Value: &value,
+	}
+	body, err := json.Marshal(currentInput)
+	assert.Nil(suite.T(), err)
+	setRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/recs/%s/current", id), bytes.NewReader(body))
+	setRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	setResponse := httptest.NewRecorder()
+	suite.server.ServeHTTP(setResponse, setRequest)
+	assert.Equal(suite.T(), setResponse.Code, http.StatusOK)
+
+	getRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s/current", id), nil)
+	getRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
+	getResponse := httptest.NewRecorder()
+	suite.server.ServeHTTP(getResponse, getRequest)
+	assert.Equal(suite.T(), getResponse.Code, http.StatusOK)
+	decoder := json.NewDecoder(getResponse.Result().Body)
+	var apiCurrent apiCurrent
+	assert.Nil(suite.T(), decoder.Decode(&apiCurrent))
+	assert.Equal(suite.T(), 123.456, *apiCurrent.Value)
+}
+
 // These functions just take literals and return a pointer to them. For easier DB/JSON construction
 func s(s string) *string   { return &s }
 func f(f float64) *float64 { return &f }

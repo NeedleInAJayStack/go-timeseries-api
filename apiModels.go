@@ -25,6 +25,15 @@ type apiRec struct {
 	Unit *string        `json:"unit"`
 }
 
+type apiCurrentInput struct {
+	Value *float64 `json:"value"`
+}
+
+type apiCurrent struct {
+	Ts    *time.Time `json:"ts"`
+	Value *float64   `json:"value"`
+}
+
 type clientToken struct {
 	Token string `json:"token"`
 }
