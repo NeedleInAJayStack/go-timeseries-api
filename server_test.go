@@ -132,7 +132,7 @@ func (suite *ServerTestSuite) TestGetHis() {
 	}
 	suite.db.Create(&dbHistory)
 
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/his/%s?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), nil)
+	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s/history?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 	suite.server.ServeHTTP(response, request)
@@ -181,7 +181,7 @@ func (suite *ServerTestSuite) TestPostHis() {
 	body, err := json.Marshal(hisItem)
 	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/his/%s", pointId), bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/recs/%s/history", pointId), bytes.NewReader(body))
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 

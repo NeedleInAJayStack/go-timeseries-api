@@ -78,9 +78,8 @@ func (recController recController) postRecs(w http.ResponseWriter, r *http.Reque
 
 // GET /recs/tag/:tag
 func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.Request) {
-	tag := r.PathValue("tag")
 	var recs []rec
-	err := recController.db.Where(datatypes.JSONQuery("tags").HasKey(tag)).Order("dis").Find(&recs).Error
+	err := recController.db.Where(datatypes.JSONQuery("tags").HasKey("siteMeter")).Order("dis").Find(&recs).Error
 	if err != nil {
 		log.Printf("SQL Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)

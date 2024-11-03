@@ -16,7 +16,7 @@ type hisController struct {
 	db *gorm.DB
 }
 
-// GET /his/:pointId?start=...&end=...
+// GET /recs/:pointId/history?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
@@ -80,7 +80,7 @@ func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 	w.Write(httpJson)
 }
 
-// POST /his/:pointId
+// POST /recs/:pointId/history
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) postHis(writer http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
@@ -118,7 +118,7 @@ func (h hisController) postHis(writer http.ResponseWriter, request *http.Request
 	writer.WriteHeader(http.StatusOK)
 }
 
-// DELETE /his/:pointId?start=...&end=...
+// DELETE /recs/:pointId/history?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) deleteHis(writer http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
