@@ -45,7 +45,7 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 	tokenAuth.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis) // Deprecated
 	server.Handle("/his/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
-	recController := recController{db: serverConfig.db}
+	recController := recController{store: newGormRecStore(serverConfig.db)}
 	tokenAuth.HandleFunc("GET /recs", recController.getRecs)
 	tokenAuth.HandleFunc("POST /recs", recController.postRecs)
 	server.Handle("/recs", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
