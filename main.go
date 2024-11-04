@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
@@ -76,6 +78,45 @@ func main() {
 		recStore:     recStore,
 		currentStore: currentStore,
 	}
+
+	// Start MQTT
+	mqttAddress := os.Getenv("MQTT_ADDRESS")
+	mqttUsername := os.Getenv("MQTT_USERNAME")
+	mqttPassword := os.Getenv("MQTT_PASSWORD")
+	mqttConnectionTimeout := time.Duration(5 * time.Second)
+
+	options := mqtt.NewClientOptions()
+	options.AddBroker(mqttAddress)
+	options.SetUsername(mqttUsername)
+	options.SetPassword(mqttPassword)
+	mqttClient := mqtt.NewClient(options)
+	connectToken := mqttClient.Connect()
+	if !connectToken.WaitTimeout(mqttConnectionTimeout) {
+		log.Fatalf("MQTT timeout connecting to %s", mqttAddress)
+	}
+	if connectToken.Error() != nil {
+		log.Fatal(connectToken.Error())
+	}
+	log.Printf("MQTT connected to %s", mqttAddress)
+	valueEmitter := newMQTTValueEmitter(mqttClient)
+
+	// Setup ingester
+	ingester := newIngester(
+		currentStore,
+		&valueEmitter,
+	)
+	recs, err := recStore.readRecs("mqttSubject")
+	if err != nil {
+		log.Fatalf("error getting mqttSubject points: %s", err)
+	}
+	ingester.refreshSubscriptions(recs)
+
+	defer func() {
+		ingester.refreshSubscriptions([]rec{})
+		mqttClient.Disconnect(1)
+		log.Printf("Disconnected from %s", mqttAddress)
+	}()
+
 	server, err := NewServer(serverConfig)
 	if err != nil {
 		log.Fatal(err)
