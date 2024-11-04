@@ -14,8 +14,8 @@ type his struct {
 }
 
 type rec struct {
-	ID   uuid.UUID      `gorm:"column:id;type:uuid;primaryKey:rec_pkey"`
-	Tags datatypes.JSON `gorm:"type:json"`
+	ID   uuid.UUID         `gorm:"column:id;type:uuid;primaryKey:rec_pkey"`
+	Tags datatypes.JSONMap `gorm:"type:json"`
 	Dis  *string
 	Unit *string
 }

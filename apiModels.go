@@ -19,10 +19,10 @@ type apiHisItem struct {
 }
 
 type apiRec struct {
-	ID   uuid.UUID      `json:"id"`
-	Tags datatypes.JSON `json:"tags"`
-	Dis  *string        `json:"dis"`
-	Unit *string        `json:"unit"`
+	ID   uuid.UUID         `json:"id"`
+	Tags datatypes.JSONMap `json:"tags"`
+	Dis  *string           `json:"dis"`
+	Unit *string           `json:"unit"`
 }
 
 type apiCurrentInput struct {
