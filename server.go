@@ -39,7 +39,7 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 
 	tokenAuth := http.NewServeMux()
 
-	hisController := hisController{db: serverConfig.db}
+	hisController := hisController{store: newGormHistoryStore(serverConfig.db)}
 	tokenAuth.HandleFunc("GET /his/{pointId}", hisController.getHis)       // Deprecated
 	tokenAuth.HandleFunc("POST /his/{pointId}", hisController.postHis)     // Deprecated
 	tokenAuth.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis) // Deprecated
