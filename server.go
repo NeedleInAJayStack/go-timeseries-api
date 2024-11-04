@@ -39,21 +39,29 @@ func NewServer(serverConfig ServerConfig) (*http.ServeMux, error) {
 
 	tokenAuth := http.NewServeMux()
 
-	hisController := hisController{db: serverConfig.db}
-	tokenAuth.HandleFunc("GET /his/{pointId}", hisController.getHis)
-	tokenAuth.HandleFunc("POST /his/{pointId}", hisController.postHis)
-	tokenAuth.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis)
+	hisController := hisController{store: newGormHistoryStore(serverConfig.db)}
+	tokenAuth.HandleFunc("GET /his/{pointId}", hisController.getHis)       // Deprecated
+	tokenAuth.HandleFunc("POST /his/{pointId}", hisController.postHis)     // Deprecated
+	tokenAuth.HandleFunc("DELETE /his/{pointId}", hisController.deleteHis) // Deprecated
 	server.Handle("/his/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
-	recController := recController{db: serverConfig.db}
+	recController := recController{store: newGormRecStore(serverConfig.db)}
 	tokenAuth.HandleFunc("GET /recs", recController.getRecs)
 	tokenAuth.HandleFunc("POST /recs", recController.postRecs)
 	server.Handle("/recs", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
-	tokenAuth.HandleFunc("GET /recs/tag/{tag}", recController.getRecsByTag)
+	tokenAuth.HandleFunc("GET /recs/tag/siteMeter", recController.getRecsByTag) // Deprecated. Use /recs?tag=""
 	tokenAuth.HandleFunc("GET /recs/{id}", recController.getRec)
 	tokenAuth.HandleFunc("PUT /recs/{id}", recController.putRec)
 	tokenAuth.HandleFunc("DELETE /recs/{id}", recController.deleteRec)
+
+	tokenAuth.HandleFunc("GET /recs/{pointId}/history", hisController.getHis)
+	tokenAuth.HandleFunc("POST /recs/{pointId}/history", hisController.postHis)
+	tokenAuth.HandleFunc("DELETE /recs/{pointId}/history", hisController.getHis)
+
+	currentController := currentController{store: newInMemoryCurrentStore()}
+	tokenAuth.HandleFunc("GET /recs/{pointId}/current", currentController.getCurrent)
+	tokenAuth.HandleFunc("POST /recs/{pointId}/current", currentController.postCurrent)
 	server.Handle("/recs/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
 
 	// Catch all others with public files. Not found fallback is app index for browser router.

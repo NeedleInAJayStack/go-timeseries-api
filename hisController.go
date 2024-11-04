@@ -8,15 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type hisController struct {
-	db *gorm.DB
+	store historyStore
 }
 
-// GET /his/:pointId?start=...&end=...
+// GET /recs/:pointId/history?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
@@ -34,39 +32,36 @@ func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 	}
 	params := request.Form
 
-	var sqlResult []his
-	query := h.db.Where(&his{PointId: pointId})
 	// TODO: Change start/end to ISO8601
+	var start *time.Time
 	if params["start"] != nil {
 		startStr := params["start"][0]
-		start, err := strconv.ParseInt(startStr, 0, 64)
+		startUnix, err := strconv.ParseInt(startStr, 0, 64)
 		if err != nil {
 			log.Printf("Cannot parse time: %s", startStr)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		query.Where("ts >= ?", time.Unix(start, 0))
+		startTime := time.Unix(startUnix, 0)
+		start = &startTime
 	}
+	var end *time.Time
 	if params["end"] != nil {
 		endStr := params["end"][0]
-		end, err := strconv.ParseInt(endStr, 0, 64)
+		endUnix, err := strconv.ParseInt(endStr, 0, 64)
 		if err != nil {
 			log.Printf("Cannot parse time: %s", endStr)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		query.Where("ts < ?", time.Unix(end, 0))
+		endTime := time.Unix(endUnix, 0)
+		end = &endTime
 	}
-	err = query.Order("ts asc").Find(&sqlResult).Error
+	httpResult, err := h.store.readHistory(pointId, start, end)
 	if err != nil {
-		log.Printf("SQL Error: %s", err)
+		log.Printf("Storage Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	httpResult := []apiHis{}
-	for _, sqlRow := range sqlResult {
-		httpResult = append(httpResult, apiHis(sqlRow))
 	}
 
 	httpJson, err := json.Marshal(httpResult)
@@ -80,7 +75,7 @@ func (h hisController) getHis(w http.ResponseWriter, request *http.Request) {
 	w.Write(httpJson)
 }
 
-// POST /his/:pointId
+// POST /recs/:pointId/history
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) postHis(writer http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
@@ -98,27 +93,16 @@ func (h hisController) postHis(writer http.ResponseWriter, request *http.Request
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	his := his{
-		PointId: pointId,
-		Ts:      hisItem.Ts,
-		Value:   hisItem.Value,
-	}
-
-	err = h.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "pointId"}, {Name: "ts"}},
-		DoUpdates: clause.AssignmentColumns([]string{"value"}),
-	}).Create(&his).Error
+	err = h.store.writeHistory(pointId, hisItem)
 	if err != nil {
-		log.Printf("SQL Error: %s", err)
+		log.Printf("Storage Error: %s", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	writer.WriteHeader(http.StatusOK)
 }
 
-// DELETE /his/:pointId?start=...&end=...
+// DELETE /recs/:pointId/history?start=...&end=...
 // Note that start and end are in seconds since epoch (1970-01-01T00:00:00Z)
 func (h hisController) deleteHis(writer http.ResponseWriter, request *http.Request) {
 	pointIdString := request.PathValue("pointId")
@@ -136,30 +120,32 @@ func (h hisController) deleteHis(writer http.ResponseWriter, request *http.Reque
 	}
 	params := request.Form
 
-	var sqlResult []his
-	query := h.db.Where(&his{PointId: pointId})
 	// TODO: Change start/end to ISO8601
+	var start *time.Time
 	if params["start"] != nil {
 		startStr := params["start"][0]
-		start, err := strconv.ParseInt(startStr, 0, 64)
+		startUnix, err := strconv.ParseInt(startStr, 0, 64)
 		if err != nil {
 			log.Printf("Cannot parse time: %s", startStr)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		query.Where("ts >= ?", time.Unix(start, 0))
+		startTime := time.Unix(startUnix, 0)
+		start = &startTime
 	}
+	var end *time.Time
 	if params["end"] != nil {
 		endStr := params["end"][0]
-		end, err := strconv.ParseInt(endStr, 0, 64)
+		endUnix, err := strconv.ParseInt(endStr, 0, 64)
 		if err != nil {
 			log.Printf("Cannot parse time: %s", endStr)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		query.Where("ts < ?", time.Unix(end, 0))
+		endTime := time.Unix(endUnix, 0)
+		end = &endTime
 	}
-	err = query.Delete(&sqlResult).Error
+	err = h.store.deleteHistory(pointId, start, end)
 	if err != nil {
 		log.Printf("SQL Error: %s", err)
 		writer.WriteHeader(http.StatusInternalServerError)
