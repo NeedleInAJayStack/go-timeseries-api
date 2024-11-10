@@ -47,7 +47,7 @@ func (suite *ServerTestSuite) SetupTest() {
 }
 
 func (suite *ServerTestSuite) getAuthToken() string {
-	request, _ := http.NewRequest(http.MethodGet, "/auth/token", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
 	request.SetBasicAuth("test", "password")
 	response := httptest.NewRecorder()
 
@@ -61,7 +61,7 @@ func (suite *ServerTestSuite) getAuthToken() string {
 }
 
 func (suite *ServerTestSuite) TestGetAuthToken() {
-	request, _ := http.NewRequest(http.MethodGet, "/auth/token", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
 	request.SetBasicAuth("test", "password")
 	response := httptest.NewRecorder()
 
@@ -76,7 +76,7 @@ func (suite *ServerTestSuite) TestGetAuthToken() {
 }
 
 func (suite *ServerTestSuite) TestGetAuthTokenInvalidUsername() {
-	request, _ := http.NewRequest(http.MethodGet, "/auth/token", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
 	request.SetBasicAuth("wrong", "password")
 	response := httptest.NewRecorder()
 
@@ -86,7 +86,7 @@ func (suite *ServerTestSuite) TestGetAuthTokenInvalidUsername() {
 }
 
 func (suite *ServerTestSuite) TestGetAuthTokenInvalidPassword() {
-	request, _ := http.NewRequest(http.MethodGet, "/auth/token", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
 	request.SetBasicAuth("wrong", "password")
 	response := httptest.NewRecorder()
 
@@ -132,7 +132,7 @@ func (suite *ServerTestSuite) TestGetHis() {
 	}
 	suite.db.Create(&dbHistory)
 
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s/history?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), nil)
+	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s/history?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 	suite.server.ServeHTTP(response, request)
@@ -174,14 +174,15 @@ func (suite *ServerTestSuite) TestPostHis() {
 	ts := time.Now().Local()
 	value := 123.456
 
-	hisItem := apiHisItem{
-		Ts:    &ts,
-		Value: &value,
+	hisItem := apiHis{
+		PointId: pointId,
+		Ts:      &ts,
+		Value:   &value,
 	}
 	body, err := json.Marshal(hisItem)
 	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/recs/%s/history", pointId), bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/recs/%s/history", pointId), bytes.NewReader(body))
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -224,7 +225,7 @@ func (suite *ServerTestSuite) TestGetRecs() {
 	}
 	suite.db.Create(&recs)
 
-	request, _ := http.NewRequest(http.MethodGet, "/recs", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/recs", nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -272,7 +273,7 @@ func (suite *ServerTestSuite) TestPostRecs() {
 	body, err := json.Marshal(apiRec)
 	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPost, "/recs", bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPost, "/api/recs", bytes.NewReader(body))
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -315,7 +316,7 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 	}
 	suite.db.Create(&recs)
 
-	request, _ := http.NewRequest(http.MethodGet, "/recs?tag=tag1", nil)
+	request, _ := http.NewRequest(http.MethodGet, "/api/recs?tag=tag1", nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -361,7 +362,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 	}
 	suite.db.Create(&recs)
 
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s", id2), nil)
+	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s", id2), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -409,7 +410,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 	body, err := json.Marshal(apiRec)
 	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/recs/%s", id), bytes.NewReader(body))
+	request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/recs/%s", id), bytes.NewReader(body))
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -443,7 +444,7 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 	}
 	suite.db.Create(&recs)
 
-	request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/recs/%s", id), nil)
+	request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/recs/%s", id), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	response := httptest.NewRecorder()
 
@@ -474,13 +475,13 @@ func (suite *ServerTestSuite) TestCurrent() {
 	}
 	body, err := json.Marshal(currentInput)
 	assert.Nil(suite.T(), err)
-	setRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/recs/%s/current", id), bytes.NewReader(body))
+	setRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/recs/%s/current", id), bytes.NewReader(body))
 	setRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	setResponse := httptest.NewRecorder()
 	suite.server.ServeHTTP(setResponse, setRequest)
 	assert.Equal(suite.T(), setResponse.Code, http.StatusOK)
 
-	getRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/recs/%s/current", id), nil)
+	getRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s/current", id), nil)
 	getRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
 	getResponse := httptest.NewRecorder()
 	suite.server.ServeHTTP(getResponse, getRequest)
