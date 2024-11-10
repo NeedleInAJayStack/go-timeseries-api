@@ -9,6 +9,7 @@ services:
       - DATABASE_HOST=db
     ports:
       - '8080:80'
+      - '2112:2112' # Metrics
     volumes:
       - .env:/project/.env
     depends_on:
