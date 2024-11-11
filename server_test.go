@@ -46,20 +46,6 @@ func (suite *ServerTestSuite) SetupTest() {
 	suite.db = db
 }
 
-func (suite *ServerTestSuite) getAuthToken() string {
-	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
-	request.SetBasicAuth("test", "password")
-	response := httptest.NewRecorder()
-
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
-
-	var clientToken clientToken
-	assert.Nil(suite.T(), json.Unmarshal(response.Body.Bytes(), &clientToken))
-	return clientToken.Token
-}
-
 func (suite *ServerTestSuite) TestGetAuthToken() {
 	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
 	request.SetBasicAuth("test", "password")
@@ -132,16 +118,10 @@ func (suite *ServerTestSuite) TestGetHis() {
 	}
 	suite.db.Create(&dbHistory)
 
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s/history?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), nil)
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
-	suite.server.ServeHTTP(response, request)
+	authToken := suite.getAuthToken()
 
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
-	decoder := json.NewDecoder(response.Result().Body)
 	var history []hisItem
-	assert.Nil(suite.T(), decoder.Decode(&history))
-
+	suite.get(fmt.Sprintf("/api/recs/%s/history?start=%d&end=%d", pointId1, nowMinus10Min.Unix(), now.Unix()), authToken, &history)
 	assert.Equal(suite.T(), 2, len(history))
 
 	// TODO: timezones are not matching up :(
@@ -178,16 +158,10 @@ func (suite *ServerTestSuite) TestPostHis() {
 		Ts:    &ts,
 		Value: &value,
 	}
-	body, err := json.Marshal(hisItem)
-	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/recs/%s/history", pointId), bytes.NewReader(body))
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
+	authToken := suite.getAuthToken()
 
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	suite.post(fmt.Sprintf("/api/recs/%s/history", pointId), authToken, hisItem)
 
 	var dbHis gormHis
 	suite.db.First(&dbHis)
@@ -224,16 +198,10 @@ func (suite *ServerTestSuite) TestGetRecs() {
 	}
 	suite.db.Create(&gormRecs)
 
-	request, _ := http.NewRequest(http.MethodGet, "/api/recs", nil)
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
+	authToken := suite.getAuthToken()
 
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
-	decoder := json.NewDecoder(response.Result().Body)
 	var recs []rec
-	assert.Nil(suite.T(), decoder.Decode(&recs))
+	suite.get("/api/recs", authToken, &recs)
 
 	rec1 := "rec1"
 	kW := "kW"
@@ -269,16 +237,9 @@ func (suite *ServerTestSuite) TestPostRecs() {
 		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
 		Unit: &kW,
 	}
-	body, err := json.Marshal(rec)
-	assert.Nil(suite.T(), err)
+	authToken := suite.getAuthToken()
 
-	request, _ := http.NewRequest(http.MethodPost, "/api/recs", bytes.NewReader(body))
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
-
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	suite.post("/api/recs", authToken, rec)
 
 	var gormRecs []gormRec
 	suite.db.Find(&gormRecs)
@@ -315,16 +276,10 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 	}
 	suite.db.Create(&gormRecs)
 
-	request, _ := http.NewRequest(http.MethodGet, "/api/recs?tag=tag1", nil)
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
+	authToken := suite.getAuthToken()
 
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
-	decoder := json.NewDecoder(response.Result().Body)
 	var recs []rec
-	assert.Nil(suite.T(), decoder.Decode(&recs))
+	suite.get("/api/recs?tag=tag1", authToken, &recs)
 
 	rec1 := "rec1"
 	kW := "kW"
@@ -361,16 +316,10 @@ func (suite *ServerTestSuite) TestGetRec() {
 	}
 	suite.db.Create(&gormRecs)
 
-	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s", id2), nil)
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
+	authToken := suite.getAuthToken()
 
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
-	decoder := json.NewDecoder(response.Result().Body)
 	var rec2 rec
-	assert.Nil(suite.T(), decoder.Decode(&rec2))
+	suite.get(fmt.Sprintf("/api/recs/%s", id2), authToken, &rec2)
 
 	rec2Dis := "rec2"
 	lb := "lb"
@@ -406,16 +355,10 @@ func (suite *ServerTestSuite) TestPutRec() {
 		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
 		Unit: &lb,
 	}
-	body, err := json.Marshal(rec)
-	assert.Nil(suite.T(), err)
 
-	request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/recs/%s", id), bytes.NewReader(body))
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
+	authToken := suite.getAuthToken()
 
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	suite.put(fmt.Sprintf("/api/recs/%s", id), authToken, rec)
 
 	var updatedRec gormRec
 	suite.db.First(&updatedRec, id)
@@ -443,13 +386,8 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 	}
 	suite.db.Create(&gormRecs)
 
-	request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/recs/%s", id), nil)
-	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	response := httptest.NewRecorder()
-
-	suite.server.ServeHTTP(response, request)
-
-	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	authToken := suite.getAuthToken()
+	suite.delete(fmt.Sprintf("/api/recs/%s", id), authToken)
 
 	var gormRecCount int64
 	suite.db.Where("id = ?", id).Count(&gormRecCount)
@@ -468,29 +406,77 @@ func (suite *ServerTestSuite) TestCurrent() {
 	}
 	suite.db.Create(&gormRecs)
 
+	authToken := suite.getAuthToken()
+
 	value := 123.456
 	currentInput := currentInput{
 		Value: &value,
 	}
-	body, err := json.Marshal(currentInput)
-	assert.Nil(suite.T(), err)
-	setRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/recs/%s/current", id), bytes.NewReader(body))
-	setRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	setResponse := httptest.NewRecorder()
-	suite.server.ServeHTTP(setResponse, setRequest)
-	assert.Equal(suite.T(), setResponse.Code, http.StatusOK)
+	suite.post(fmt.Sprintf("/api/recs/%s/current", id), authToken, currentInput)
 
-	getRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s/current", id), nil)
-	getRequest.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
-	getResponse := httptest.NewRecorder()
-	suite.server.ServeHTTP(getResponse, getRequest)
-	assert.Equal(suite.T(), getResponse.Code, http.StatusOK)
-	decoder := json.NewDecoder(getResponse.Result().Body)
 	var current current
-	assert.Nil(suite.T(), decoder.Decode(&current))
+	suite.get(fmt.Sprintf("/api/recs/%s/current", id), authToken, &current)
 	assert.Equal(suite.T(), 123.456, *current.Value)
 }
 
 // These functions just take literals and return a pointer to them. For easier DB/JSON construction
 func s(s string) *string   { return &s }
 func f(f float64) *float64 { return &f }
+
+func (suite *ServerTestSuite) getAuthToken() string {
+	request, _ := http.NewRequest(http.MethodGet, "/api/auth/token", nil)
+	request.SetBasicAuth("test", "password")
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+
+	var clientToken clientToken
+	assert.Nil(suite.T(), json.Unmarshal(response.Body.Bytes(), &clientToken))
+	return clientToken.Token
+}
+
+func (suite *ServerTestSuite) delete(route string, authToken string) {
+	request, err := http.NewRequest(http.MethodDelete, route, nil)
+	assert.Nil(suite.T(), err)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	response := httptest.NewRecorder()
+	suite.server.ServeHTTP(response, request)
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+}
+
+func (suite *ServerTestSuite) get(route string, authToken string, unmarshalTo any) {
+	request, err := http.NewRequest(http.MethodGet, route, nil)
+	assert.Nil(suite.T(), err)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	response := httptest.NewRecorder()
+	suite.server.ServeHTTP(response, request)
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+	assert.Nil(suite.T(), json.Unmarshal(response.Body.Bytes(), &unmarshalTo))
+}
+
+func (suite *ServerTestSuite) post(route string, authToken string, toMarshal any) {
+	body, err := json.Marshal(toMarshal)
+	assert.Nil(suite.T(), err)
+	request, err := http.NewRequest(http.MethodPost, route, bytes.NewReader(body))
+	assert.Nil(suite.T(), err)
+	request.Header.Add(
+		"Authorization",
+		fmt.Sprintf("Bearer %s", authToken),
+	)
+	response := httptest.NewRecorder()
+	suite.server.ServeHTTP(response, request)
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+}
+
+func (suite *ServerTestSuite) put(route string, authToken string, toMarshal any) {
+	body, err := json.Marshal(toMarshal)
+	assert.Nil(suite.T(), err)
+	request, err := http.NewRequest(http.MethodPut, route, bytes.NewReader(body))
+	assert.Nil(suite.T(), err)
+	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", authToken))
+	response := httptest.NewRecorder()
+	suite.server.ServeHTTP(response, request)
+	assert.Equal(suite.T(), response.Code, http.StatusOK)
+}
