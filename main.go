@@ -38,6 +38,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = db.AutoMigrate(&gormHis{}, &gormRec{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// OTEL
 	metricExporter, err := prometheus.New()
@@ -57,14 +61,20 @@ func main() {
 	otel.SetMeterProvider(meterProvider) // Sets global
 	go serveMetrics()
 
+	// Stores
+	historyStore := newGormHistoryStore(db)
+	recStore := newGormRecStore(db)
+	currentStore := newInMemoryCurrentStore()
+
 	serverConfig := ServerConfig{
 		username:             os.Getenv("USERNAME"),
 		password:             os.Getenv("PASSWORD"),
 		jwtSecret:            os.Getenv("JWT_SECRET"),
 		tokenDurationSeconds: 60 * 60, // 1 hour
 
-		db:            db,
-		dbAutoMigrate: true,
+		historyStore: historyStore,
+		recStore:     recStore,
+		currentStore: currentStore,
 	}
 	server, err := NewServer(serverConfig)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"gorm.io/gorm"
 )
 
 type ServerConfig struct {
@@ -14,20 +13,13 @@ type ServerConfig struct {
 	jwtSecret            string
 	tokenDurationSeconds int
 
-	// Database
-	db            *gorm.DB
-	dbAutoMigrate bool
+	// Stores
+	historyStore historyStore
+	recStore     recStore
+	currentStore currentStore
 }
 
 func NewServer(serverConfig ServerConfig) (http.Handler, error) {
-
-	if serverConfig.dbAutoMigrate {
-		err := serverConfig.db.AutoMigrate(&gormHis{}, &gormRec{})
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// Register paths
 	server := http.NewServeMux()
 	tokenAuth := http.NewServeMux()
@@ -38,9 +30,9 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 		username:             serverConfig.username,
 		password:             serverConfig.password,
 	}
-	hisController := hisController{store: newGormHistoryStore(serverConfig.db)}
-	recController := recController{store: newGormRecStore(serverConfig.db)}
-	currentController := currentController{store: newInMemoryCurrentStore()}
+	hisController := hisController{store: serverConfig.historyStore}
+	recController := recController{store: serverConfig.recStore}
+	currentController := currentController{store: serverConfig.currentStore}
 
 	// handleFunc is a replacement for mux.HandleFunc that adds route data to the metrics.
 	handleFunc := func(mux *http.ServeMux, pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {

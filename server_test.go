@@ -30,6 +30,12 @@ func TestServerTestSuite(t *testing.T) {
 func (suite *ServerTestSuite) SetupTest() {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	assert.Nil(suite.T(), err)
+	err = db.AutoMigrate(&gormHis{}, &gormRec{})
+	assert.Nil(suite.T(), err)
+
+	historyStore := newGormHistoryStore(db)
+	recStore := newGormRecStore(db)
+	currentStore := newInMemoryCurrentStore()
 
 	server, err := NewServer(ServerConfig{
 		username:             "test",
@@ -37,8 +43,9 @@ func (suite *ServerTestSuite) SetupTest() {
 		jwtSecret:            "aaa",
 		tokenDurationSeconds: 60,
 
-		db:            db,
-		dbAutoMigrate: true,
+		historyStore: historyStore,
+		recStore:     recStore,
+		currentStore: currentStore,
 	})
 	assert.Nil(suite.T(), err)
 
