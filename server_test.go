@@ -368,7 +368,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 		gormRec{
 			ID:   id,
 			Dis:  s("rec updated"),
-			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value"}),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 			Unit: s("lb"),
 		},
 	)

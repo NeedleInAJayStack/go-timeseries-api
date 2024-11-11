@@ -85,7 +85,9 @@ func (s gormRecStore) updateRec(
 	if rec.Unit != nil {
 		gormRec.Unit = rec.Unit
 	}
-
+	if rec.Tags != nil {
+		gormRec.Tags = rec.Tags
+	}
 	return s.db.Save(&gormRec).Error
 }
 
