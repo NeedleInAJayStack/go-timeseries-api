@@ -8,6 +8,12 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -32,6 +38,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// OTEL
+	metricExporter, err := prometheus.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	meterProvider := metric.NewMeterProvider(
+		metric.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceName("api-server"),
+				semconv.ServiceVersion("0.1.0"),
+			),
+		),
+		metric.WithReader(metricExporter.Reader),
+	)
+	otel.SetMeterProvider(meterProvider) // Sets global
+	go serveMetrics()
 
 	serverConfig := ServerConfig{
 		username:             os.Getenv("USERNAME"),
@@ -65,5 +89,15 @@ func envOrDefault(name string, def string) string {
 		return value
 	} else {
 		return def
+	}
+}
+
+func serveMetrics() {
+	log.Printf("Serving metrics at localhost:2112/metrics")
+	http.Handle("/metrics", promhttp.Handler())
+	err := http.ListenAndServe(":2112", nil)
+	if err != nil {
+		fmt.Printf("error serving http: %v", err)
+		return
 	}
 }

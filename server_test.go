@@ -19,7 +19,7 @@ import (
 
 type ServerTestSuite struct {
 	suite.Suite
-	server *http.ServeMux
+	server http.Handler
 	db     *gorm.DB
 }
 
