@@ -186,13 +186,13 @@ func (suite *ServerTestSuite) TestGetRecs() {
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
 			Dis:  s("rec2"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value2"}),
 			Unit: s("lb"),
 		},
 	}
@@ -214,13 +214,13 @@ func (suite *ServerTestSuite) TestGetRecs() {
 			{
 				ID:   id1,
 				Dis:  &rec1,
-				Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+				Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 				Unit: &kW,
 			},
 			{
 				ID:   id2,
 				Dis:  &rec2,
-				Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+				Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value2"}),
 				Unit: &lb,
 			},
 		},
@@ -234,7 +234,7 @@ func (suite *ServerTestSuite) TestPostRecs() {
 	rec := rec{
 		ID:   id1,
 		Dis:  &rec1,
-		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+		Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 		Unit: &kW,
 	}
 	authToken := suite.getAuthToken()
@@ -250,7 +250,7 @@ func (suite *ServerTestSuite) TestPostRecs() {
 			{
 				ID:   id1,
 				Dis:  s("rec1"),
-				Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+				Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 				Unit: s("kW"),
 			},
 		},
@@ -264,13 +264,13 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
-			Tags: datatypes.JSON([]byte(`{"tag1":"value1"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag1": "value1"}),
 			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
 			Dis:  s("rec2"),
-			Tags: datatypes.JSON([]byte(`{"tag2":"value2"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag2": "value2"}),
 			Unit: s("lb"),
 		},
 	}
@@ -290,7 +290,7 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 			{
 				ID:   id1,
 				Dis:  &rec1,
-				Tags: datatypes.JSON([]byte(`{"tag1":"value1"}`)),
+				Tags: datatypes.JSONMap(map[string]interface{}{"tag1": "value1"}),
 				Unit: &kW,
 			},
 		},
@@ -304,13 +304,13 @@ func (suite *ServerTestSuite) TestGetRec() {
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 			Unit: s("kW"),
 		},
 		{
 			ID:   id2,
 			Dis:  s("rec2"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value2"}),
 			Unit: s("lb"),
 		},
 	}
@@ -329,7 +329,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 		rec{
 			ID:   id2,
 			Dis:  &rec2Dis,
-			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value2"}),
 			Unit: &lb,
 		},
 	)
@@ -341,7 +341,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 		{
 			ID:   id,
 			Dis:  s("rec"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value"}),
 			Unit: s("kW"),
 		},
 	}
@@ -352,7 +352,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 	rec := rec{
 		ID:   id,
 		Dis:  &dis,
-		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
+		Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value1"}),
 		Unit: &lb,
 	}
 
@@ -368,7 +368,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 		gormRec{
 			ID:   id,
 			Dis:  s("rec updated"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value"}),
 			Unit: s("lb"),
 		},
 	)
@@ -380,7 +380,7 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 		{
 			ID:   id,
 			Dis:  s("rec"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value"}),
 			Unit: s("kW"),
 		},
 	}
@@ -400,7 +400,7 @@ func (suite *ServerTestSuite) TestCurrent() {
 		{
 			ID:   id,
 			Dis:  s("rec"),
-			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
+			Tags: datatypes.JSONMap(map[string]interface{}{"tag": "value"}),
 			Unit: s("kW"),
 		},
 	}
