@@ -35,22 +35,22 @@ func (recController recController) getRecs(w http.ResponseWriter, r *http.Reques
 // POST /recs
 func (recController recController) postRecs(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var apiRec apiRec
-	err := decoder.Decode(&apiRec)
+	var rec rec
+	err := decoder.Decode(&rec)
 	if err != nil {
 		log.Printf("Cannot decode request JSON: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = recController.store.createRec(apiRec)
+	err = recController.store.createRec(rec)
 	if err != nil {
 		log.Printf("Storage Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	recJSON, err := json.Marshal(apiRec)
+	recJSON, err := json.Marshal(rec)
 	if err != nil {
 		log.Printf("Cannot encode response JSON")
 		w.WriteHeader(http.StatusBadRequest)
@@ -63,14 +63,14 @@ func (recController recController) postRecs(w http.ResponseWriter, r *http.Reque
 
 // GET /recs/tag/:tag
 func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.Request) {
-	apiRecs, err := recController.store.readRecs("siteMeter")
+	recs, err := recController.store.readRecs("siteMeter")
 	if err != nil {
 		log.Printf("Storage Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	httpJson, err := json.Marshal(apiRecs)
+	httpJson, err := json.Marshal(recs)
 	if err != nil {
 		log.Printf("Cannot encode response JSON")
 		w.WriteHeader(http.StatusBadRequest)
@@ -90,14 +90,14 @@ func (recController recController) getRec(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	apiRec, err := recController.store.readRec(id)
+	rec, err := recController.store.readRec(id)
 	if err != nil {
 		log.Printf("Storage Error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	httpJson, err := json.Marshal(apiRec)
+	httpJson, err := json.Marshal(rec)
 	if err != nil {
 		log.Printf("Cannot encode response JSON")
 		w.WriteHeader(http.StatusBadRequest)
@@ -119,14 +119,14 @@ func (recController recController) putRec(w http.ResponseWriter, r *http.Request
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	var apiRec apiRec
-	err = decoder.Decode(&apiRec)
+	var rec rec
+	err = decoder.Decode(&rec)
 	if err != nil {
 		log.Printf("Cannot decode request JSON: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err = recController.store.updateRec(id, apiRec)
+	err = recController.store.updateRec(id, rec)
 	if err != nil {
 		log.Printf("Storage Error: %s", id)
 		w.WriteHeader(http.StatusBadRequest)
