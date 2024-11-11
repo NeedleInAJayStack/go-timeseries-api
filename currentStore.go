@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,19 +25,27 @@ type current struct {
 // inMemoryCurrentStore stores point current values in a local in-memory cache.
 // These are not shared between instances.
 type inMemoryCurrentStore struct {
+	mux   *sync.Mutex
 	cache map[uuid.UUID]current
 }
 
 func newInMemoryCurrentStore() inMemoryCurrentStore {
-	return inMemoryCurrentStore{cache: map[uuid.UUID]current{}}
+	return inMemoryCurrentStore{
+		mux:   &sync.Mutex{},
+		cache: map[uuid.UUID]current{},
+	}
 }
 
 func (s inMemoryCurrentStore) getCurrent(id uuid.UUID) current {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	return s.cache[id]
 }
 
 func (s inMemoryCurrentStore) setCurrent(id uuid.UUID, input currentInput) {
 	timestamp := time.Now()
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	s.cache[id] = current{
 		Ts:    &timestamp,
 		Value: input.Value,
