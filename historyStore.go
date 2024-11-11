@@ -15,6 +15,17 @@ type historyStore interface {
 	deleteHistory(uuid.UUID, *time.Time, *time.Time) error
 }
 
+type apiHis struct {
+	PointId uuid.UUID  `json:"pointId"`
+	Ts      *time.Time `json:"ts"`
+	Value   *float64   `json:"value"`
+}
+
+type apiHisItem struct {
+	Ts    *time.Time `json:"ts"`
+	Value *float64   `json:"value"`
+}
+
 // gormHistoryStore stores point historical values in a GORM database.
 type gormHistoryStore struct {
 	db *gorm.DB
@@ -79,4 +90,10 @@ func (s gormHistoryStore) deleteHistory(
 		query.Where("ts < ?", end)
 	}
 	return query.Delete(&sqlResult).Error
+}
+
+type his struct {
+	PointId uuid.UUID  `gorm:"column:pointId;type:uuid;primaryKey;index:his_pointId_ts_idx"`
+	Ts      *time.Time `gorm:"primaryKey:pk_his;index:his_pointId_ts_idx,sort:desc;index:his_ts_idx,sort:desc"`
+	Value   *float64   `gorm:"type:double precision"`
 }

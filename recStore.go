@@ -14,6 +14,13 @@ type recStore interface {
 	deleteRec(uuid.UUID) error
 }
 
+type apiRec struct {
+	ID   uuid.UUID      `json:"id"`
+	Tags datatypes.JSON `json:"tags"`
+	Dis  *string        `json:"dis"`
+	Unit *string        `json:"unit"`
+}
+
 // gormHistoryStore stores point historical values in a GORM database.
 type gormRecStore struct {
 	db *gorm.DB
@@ -84,4 +91,15 @@ func (s gormRecStore) updateRec(
 
 func (s gormRecStore) deleteRec(id uuid.UUID) error {
 	return s.db.Delete(&rec{}, id).Error
+}
+
+type rec struct {
+	ID   uuid.UUID      `gorm:"column:id;type:uuid;primaryKey:rec_pkey"`
+	Tags datatypes.JSON `gorm:"type:json"`
+	Dis  *string
+	Unit *string
+}
+
+func (rec) TableName() string {
+	return "rec"
 }

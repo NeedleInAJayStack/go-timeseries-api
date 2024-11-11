@@ -12,6 +12,15 @@ type currentStore interface {
 	setCurrent(uuid.UUID, apiCurrentInput)
 }
 
+type apiCurrentInput struct {
+	Value *float64 `json:"value"`
+}
+
+type apiCurrent struct {
+	Ts    *time.Time `json:"ts"`
+	Value *float64   `json:"value"`
+}
+
 // inMemoryCurrentStore stores point current values in a local in-memory cache.
 // These are not shared between instances.
 type inMemoryCurrentStore struct {
