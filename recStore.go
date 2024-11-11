@@ -99,3 +99,7 @@ type gormRec struct {
 	Dis  *string
 	Unit *string
 }
+
+func (r gormRec) TableName() string {
+	return "rec"
+}

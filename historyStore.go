@@ -91,3 +91,7 @@ type gormHis struct {
 	Ts      *time.Time `gorm:"primaryKey:pk_his;index:his_pointId_ts_idx,sort:desc;index:his_ts_idx,sort:desc"`
 	Value   *float64   `gorm:"type:double precision"`
 }
+
+func (gormHis) TableName() string {
+	return "his"
+}
