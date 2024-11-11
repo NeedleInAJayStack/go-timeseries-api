@@ -103,7 +103,7 @@ func (suite *ServerTestSuite) TestGetHis() {
 	nowMinus5Min := now.Add(-5 * 60 * 1e9)
 	nowMinus10Min := now.Add(-10 * 60 * 1e9)
 	nowMinus15Min := now.Add(-15 * 60 * 1e9)
-	dbHistory := []his{
+	dbHistory := []gormHis{
 		{
 			PointId: pointId1,
 			Ts:      &nowMinus15Min,
@@ -139,18 +139,18 @@ func (suite *ServerTestSuite) TestGetHis() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 	decoder := json.NewDecoder(response.Result().Body)
-	var apiHistory []apiHis
-	assert.Nil(suite.T(), decoder.Decode(&apiHistory))
+	var history []hisItem
+	assert.Nil(suite.T(), decoder.Decode(&history))
 
-	assert.Equal(suite.T(), 2, len(apiHistory))
+	assert.Equal(suite.T(), 2, len(history))
 
 	// TODO: timezones are not matching up :(
 	// oneOne := 1.1
 	// twoTwo := 2.2
 	// assert.Equal(
 	// 	suite.T(),
-	// 	apiHistory,
-	// 	[]apiHis{
+	// 	history,
+	// 	[]his{
 	// 		{
 	// 			PointId: pointId1,
 	// 			Ts:      &nowMinus10Min,
@@ -167,17 +167,16 @@ func (suite *ServerTestSuite) TestGetHis() {
 
 func (suite *ServerTestSuite) TestPostHis() {
 	var initialCount int64
-	suite.db.Model(&his{}).Count(&initialCount)
+	suite.db.Model(&gormHis{}).Count(&initialCount)
 	assert.Equal(suite.T(), initialCount, int64(0))
 
 	pointId := uuid.New()
 	ts := time.Now().Local()
 	value := 123.456
 
-	hisItem := apiHis{
-		PointId: pointId,
-		Ts:      &ts,
-		Value:   &value,
+	hisItem := hisItem{
+		Ts:    &ts,
+		Value: &value,
 	}
 	body, err := json.Marshal(hisItem)
 	assert.Nil(suite.T(), err)
@@ -190,7 +189,7 @@ func (suite *ServerTestSuite) TestPostHis() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 
-	var dbHis his
+	var dbHis gormHis
 	suite.db.First(&dbHis)
 	assert.NotNil(suite.T(), dbHis)
 
@@ -198,7 +197,7 @@ func (suite *ServerTestSuite) TestPostHis() {
 	// assert.Equal(
 	// 	suite.T(),
 	// 	dbHis,
-	// 	his{
+	// 	gormHis{
 	// 		PointId: pointId,
 	// 		Ts:      &ts,
 	// 		Value:   f(value),
@@ -209,7 +208,7 @@ func (suite *ServerTestSuite) TestPostHis() {
 func (suite *ServerTestSuite) TestGetRecs() {
 	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
 	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
@@ -223,7 +222,7 @@ func (suite *ServerTestSuite) TestGetRecs() {
 			Unit: s("lb"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	request, _ := http.NewRequest(http.MethodGet, "/api/recs", nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
@@ -233,8 +232,8 @@ func (suite *ServerTestSuite) TestGetRecs() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 	decoder := json.NewDecoder(response.Result().Body)
-	var apiRecs []apiRec
-	assert.Nil(suite.T(), decoder.Decode(&apiRecs))
+	var recs []rec
+	assert.Nil(suite.T(), decoder.Decode(&recs))
 
 	rec1 := "rec1"
 	kW := "kW"
@@ -242,8 +241,8 @@ func (suite *ServerTestSuite) TestGetRecs() {
 	lb := "lb"
 	assert.Equal(
 		suite.T(),
-		apiRecs,
-		[]apiRec{
+		recs,
+		[]rec{
 			{
 				ID:   id1,
 				Dis:  &rec1,
@@ -264,13 +263,13 @@ func (suite *ServerTestSuite) TestPostRecs() {
 	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
 	rec1 := "rec1"
 	kW := "kW"
-	apiRec := apiRec{
+	rec := rec{
 		ID:   id1,
 		Dis:  &rec1,
 		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
 		Unit: &kW,
 	}
-	body, err := json.Marshal(apiRec)
+	body, err := json.Marshal(rec)
 	assert.Nil(suite.T(), err)
 
 	request, _ := http.NewRequest(http.MethodPost, "/api/recs", bytes.NewReader(body))
@@ -281,12 +280,12 @@ func (suite *ServerTestSuite) TestPostRecs() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 
-	var recs []rec
-	suite.db.Find(&recs)
+	var gormRecs []gormRec
+	suite.db.Find(&gormRecs)
 	assert.Equal(
 		suite.T(),
-		recs,
-		[]rec{
+		gormRecs,
+		[]gormRec{
 			{
 				ID:   id1,
 				Dis:  s("rec1"),
@@ -300,7 +299,7 @@ func (suite *ServerTestSuite) TestPostRecs() {
 func (suite *ServerTestSuite) TestGetRecsByTag() {
 	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
 	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
@@ -314,7 +313,7 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 			Unit: s("lb"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	request, _ := http.NewRequest(http.MethodGet, "/api/recs?tag=tag1", nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
@@ -324,15 +323,15 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 	decoder := json.NewDecoder(response.Result().Body)
-	var apiRecs []apiRec
-	assert.Nil(suite.T(), decoder.Decode(&apiRecs))
+	var recs []rec
+	assert.Nil(suite.T(), decoder.Decode(&recs))
 
 	rec1 := "rec1"
 	kW := "kW"
 	assert.Equal(
 		suite.T(),
-		apiRecs,
-		[]apiRec{
+		recs,
+		[]rec{
 			{
 				ID:   id1,
 				Dis:  &rec1,
@@ -346,7 +345,7 @@ func (suite *ServerTestSuite) TestGetRecsByTag() {
 func (suite *ServerTestSuite) TestGetRec() {
 	id1, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
 	id2, _ := uuid.Parse("5ba26f95-e1ef-4867-a86b-a866cb174f06")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id1,
 			Dis:  s("rec1"),
@@ -360,7 +359,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 			Unit: s("lb"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/recs/%s", id2), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
@@ -370,7 +369,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 	decoder := json.NewDecoder(response.Result().Body)
-	var rec2 apiRec
+	var rec2 rec
 	assert.Nil(suite.T(), decoder.Decode(&rec2))
 
 	rec2Dis := "rec2"
@@ -378,7 +377,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 	assert.Equal(
 		suite.T(),
 		rec2,
-		apiRec{
+		rec{
 			ID:   id2,
 			Dis:  &rec2Dis,
 			Tags: datatypes.JSON([]byte(`{"tag":"value2"}`)),
@@ -389,7 +388,7 @@ func (suite *ServerTestSuite) TestGetRec() {
 
 func (suite *ServerTestSuite) TestPutRec() {
 	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id,
 			Dis:  s("rec"),
@@ -397,17 +396,17 @@ func (suite *ServerTestSuite) TestPutRec() {
 			Unit: s("kW"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	dis := "rec updated"
 	lb := "lb"
-	apiRec := apiRec{
+	rec := rec{
 		ID:   id,
 		Dis:  &dis,
 		Tags: datatypes.JSON([]byte(`{"tag":"value1"}`)),
 		Unit: &lb,
 	}
-	body, err := json.Marshal(apiRec)
+	body, err := json.Marshal(rec)
 	assert.Nil(suite.T(), err)
 
 	request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/recs/%s", id), bytes.NewReader(body))
@@ -418,12 +417,12 @@ func (suite *ServerTestSuite) TestPutRec() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 
-	var updatedRec rec
+	var updatedRec gormRec
 	suite.db.First(&updatedRec, id)
 	assert.Equal(
 		suite.T(),
 		updatedRec,
-		rec{
+		gormRec{
 			ID:   id,
 			Dis:  s("rec updated"),
 			Tags: datatypes.JSON([]byte(`{"tag":"value"}`)),
@@ -434,7 +433,7 @@ func (suite *ServerTestSuite) TestPutRec() {
 
 func (suite *ServerTestSuite) TestDeleteRec() {
 	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id,
 			Dis:  s("rec"),
@@ -442,7 +441,7 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 			Unit: s("kW"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	request, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/recs/%s", id), nil)
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", suite.getAuthToken()))
@@ -452,14 +451,14 @@ func (suite *ServerTestSuite) TestDeleteRec() {
 
 	assert.Equal(suite.T(), response.Code, http.StatusOK)
 
-	var recCount int64
-	suite.db.Where("id = ?", id).Count(&recCount)
-	assert.Equal(suite.T(), recCount, int64(0))
+	var gormRecCount int64
+	suite.db.Where("id = ?", id).Count(&gormRecCount)
+	assert.Equal(suite.T(), gormRecCount, int64(0))
 }
 
 func (suite *ServerTestSuite) TestCurrent() {
 	id, _ := uuid.Parse("1b4e32c7-61b5-4b38-a1cd-023c25f9965c")
-	recs := []rec{
+	gormRecs := []gormRec{
 		{
 			ID:   id,
 			Dis:  s("rec"),
@@ -467,10 +466,10 @@ func (suite *ServerTestSuite) TestCurrent() {
 			Unit: s("kW"),
 		},
 	}
-	suite.db.Create(&recs)
+	suite.db.Create(&gormRecs)
 
 	value := 123.456
-	currentInput := apiCurrentInput{
+	currentInput := currentInput{
 		Value: &value,
 	}
 	body, err := json.Marshal(currentInput)
@@ -487,9 +486,9 @@ func (suite *ServerTestSuite) TestCurrent() {
 	suite.server.ServeHTTP(getResponse, getRequest)
 	assert.Equal(suite.T(), getResponse.Code, http.StatusOK)
 	decoder := json.NewDecoder(getResponse.Result().Body)
-	var apiCurrent apiCurrent
-	assert.Nil(suite.T(), decoder.Decode(&apiCurrent))
-	assert.Equal(suite.T(), 123.456, *apiCurrent.Value)
+	var current current
+	assert.Nil(suite.T(), decoder.Decode(&current))
+	assert.Equal(suite.T(), 123.456, *current.Value)
 }
 
 // These functions just take literals and return a pointer to them. For easier DB/JSON construction

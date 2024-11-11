@@ -53,7 +53,7 @@ func (h currentController) postCurrent(writer http.ResponseWriter, request *http
 		return
 	}
 	decoder := json.NewDecoder(request.Body)
-	var currentItem apiCurrentInput
+	var currentItem currentInput
 	err = decoder.Decode(&currentItem)
 	if err != nil {
 		log.Printf("Cannot decode request JSON: %s", err)

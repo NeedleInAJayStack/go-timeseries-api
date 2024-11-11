@@ -7,14 +7,14 @@ import (
 )
 
 type recStore interface {
-	readRecs(string) ([]apiRec, error)
-	readRec(uuid.UUID) (*apiRec, error)
-	createRec(apiRec) error
-	updateRec(uuid.UUID, apiRec) error
+	readRecs(string) ([]rec, error)
+	readRec(uuid.UUID) (*rec, error)
+	createRec(rec) error
+	updateRec(uuid.UUID, rec) error
 	deleteRec(uuid.UUID) error
 }
 
-type apiRec struct {
+type rec struct {
 	ID   uuid.UUID      `json:"id"`
 	Tags datatypes.JSON `json:"tags"`
 	Dis  *string        `json:"dis"`
@@ -32,74 +32,70 @@ func newGormRecStore(db *gorm.DB) gormRecStore {
 
 func (s gormRecStore) readRecs(
 	tag string,
-) ([]apiRec, error) {
-	var sqlResult []rec
+) ([]rec, error) {
+	var sqlResult []gormRec
 	db := s.db
 	if tag != "" {
 		db = db.Where(datatypes.JSONQuery("tags").HasKey(tag))
 	}
 	err := db.Order("dis").Find(&sqlResult).Error
 	if err != nil {
-		return []apiRec{}, err
+		return []rec{}, err
 	}
 
-	result := []apiRec{}
+	result := []rec{}
 	for _, sqlRow := range sqlResult {
-		result = append(result, apiRec(sqlRow))
+		result = append(result, rec(sqlRow))
 	}
 	return result, nil
 }
 
 func (s gormRecStore) readRec(
 	id uuid.UUID,
-) (*apiRec, error) {
-	var rec rec
-	err := s.db.First(&rec, "id = ?", id).Error
+) (*rec, error) {
+	var gormRec gormRec
+	err := s.db.First(&gormRec, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
-	apiRec := apiRec(rec)
-	return &apiRec, nil
+	rec := rec(gormRec)
+	return &rec, nil
 }
 
 func (s gormRecStore) createRec(
-	apiRec apiRec,
+	rec rec,
 ) error {
-	rec := rec(apiRec)
-	return s.db.Create(&rec).Error
+	gormRec := gormRec(rec)
+	return s.db.Create(&gormRec).Error
 }
 
 func (s gormRecStore) updateRec(
 	id uuid.UUID,
-	apiRec apiRec,
+	rec rec,
 ) error {
-	var rec rec
-	err := s.db.First(&rec, id).Error
+	var gormRec gormRec
+	err := s.db.First(&gormRec, id).Error
 	if err != nil {
 		return err
 	}
 
-	if apiRec.Dis != nil {
-		rec.Dis = apiRec.Dis
+	if rec.Dis != nil {
+		gormRec.Dis = rec.Dis
 	}
-	if apiRec.Unit != nil {
-		rec.Unit = apiRec.Unit
+	if rec.Unit != nil {
+		gormRec.Unit = rec.Unit
 	}
 
-	return s.db.Save(&rec).Error
+	return s.db.Save(&gormRec).Error
 }
 
 func (s gormRecStore) deleteRec(id uuid.UUID) error {
-	return s.db.Delete(&rec{}, id).Error
+	return s.db.Delete(&gormRec{}, id).Error
 }
 
-type rec struct {
+type gormRec struct {
 	ID   uuid.UUID      `gorm:"column:id;type:uuid;primaryKey:rec_pkey"`
 	Tags datatypes.JSON `gorm:"type:json"`
 	Dis  *string
 	Unit *string
-}
-
-func (rec) TableName() string {
-	return "rec"
 }

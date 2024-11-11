@@ -22,7 +22,7 @@ type ServerConfig struct {
 func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 
 	if serverConfig.dbAutoMigrate {
-		err := serverConfig.db.AutoMigrate(&his{}, &rec{})
+		err := serverConfig.db.AutoMigrate(&gormHis{}, &gormRec{})
 		if err != nil {
 			return nil, err
 		}

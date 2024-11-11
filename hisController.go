@@ -86,7 +86,7 @@ func (h hisController) postHis(writer http.ResponseWriter, request *http.Request
 		return
 	}
 	decoder := json.NewDecoder(request.Body)
-	var hisItem apiHisItem
+	var hisItem hisItem
 	err = decoder.Decode(&hisItem)
 	if err != nil {
 		log.Printf("Cannot decode request JSON: %s", err)

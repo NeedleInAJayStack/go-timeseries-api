@@ -10,18 +10,12 @@ import (
 
 // historyStore is able to store point historical values
 type historyStore interface {
-	readHistory(uuid.UUID, *time.Time, *time.Time) ([]apiHisItem, error)
-	writeHistory(uuid.UUID, apiHisItem) error
+	readHistory(uuid.UUID, *time.Time, *time.Time) ([]hisItem, error)
+	writeHistory(uuid.UUID, hisItem) error
 	deleteHistory(uuid.UUID, *time.Time, *time.Time) error
 }
 
-type apiHis struct {
-	PointId uuid.UUID  `json:"pointId"`
-	Ts      *time.Time `json:"ts"`
-	Value   *float64   `json:"value"`
-}
-
-type apiHisItem struct {
+type hisItem struct {
 	Ts    *time.Time `json:"ts"`
 	Value *float64   `json:"value"`
 }
@@ -39,11 +33,11 @@ func (s gormHistoryStore) readHistory(
 	pointId uuid.UUID,
 	start *time.Time,
 	end *time.Time,
-) ([]apiHisItem, error) {
-	result := []apiHisItem{}
+) ([]hisItem, error) {
+	result := []hisItem{}
 
-	var sqlResult []his
-	query := s.db.Where(&his{PointId: pointId})
+	var sqlResult []gormHis
+	query := s.db.Where(&gormHis{PointId: pointId})
 	if start != nil {
 		query.Where("ts >= ?", start)
 	}
@@ -55,16 +49,16 @@ func (s gormHistoryStore) readHistory(
 		return result, err
 	}
 	for _, sqlRow := range sqlResult {
-		result = append(result, apiHisItem{Ts: sqlRow.Ts, Value: sqlRow.Value})
+		result = append(result, hisItem{Ts: sqlRow.Ts, Value: sqlRow.Value})
 	}
 	return result, nil
 }
 
 func (s gormHistoryStore) writeHistory(
 	pointId uuid.UUID,
-	hisItem apiHisItem,
+	hisItem hisItem,
 ) error {
-	his := his{
+	gormHis := gormHis{
 		PointId: pointId,
 		Ts:      hisItem.Ts,
 		Value:   hisItem.Value,
@@ -73,7 +67,7 @@ func (s gormHistoryStore) writeHistory(
 	return s.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "pointId"}, {Name: "ts"}},
 		DoUpdates: clause.AssignmentColumns([]string{"value"}),
-	}).Create(&his).Error
+	}).Create(&gormHis).Error
 }
 
 func (s gormHistoryStore) deleteHistory(
@@ -81,8 +75,8 @@ func (s gormHistoryStore) deleteHistory(
 	start *time.Time,
 	end *time.Time,
 ) error {
-	var sqlResult []his
-	query := s.db.Where(&his{PointId: pointId})
+	var sqlResult []gormHis
+	query := s.db.Where(&gormHis{PointId: pointId})
 	if start != nil {
 		query.Where("ts >= ?", start)
 	}
@@ -92,7 +86,7 @@ func (s gormHistoryStore) deleteHistory(
 	return query.Delete(&sqlResult).Error
 }
 
-type his struct {
+type gormHis struct {
 	PointId uuid.UUID  `gorm:"column:pointId;type:uuid;primaryKey;index:his_pointId_ts_idx"`
 	Ts      *time.Time `gorm:"primaryKey:pk_his;index:his_pointId_ts_idx,sort:desc;index:his_ts_idx,sort:desc"`
 	Value   *float64   `gorm:"type:double precision"`
