@@ -40,33 +40,9 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 		mux.Handle(pattern, handler)
 	}
 
-	// All are deprecated. Instead use /api/*
-	handleFunc(server, "GET /auth/token", authController.getAuthToken)
-	handleFunc(tokenAuth, "GET /his/{pointId}", hisController.getHis)       // Deprecated
-	handleFunc(tokenAuth, "POST /his/{pointId}", hisController.postHis)     // Deprecated
-	handleFunc(tokenAuth, "DELETE /his/{pointId}", hisController.deleteHis) // Deprecated
-	handleFunc(tokenAuth, "GET /recs", recController.getRecs)
-	handleFunc(tokenAuth, "POST /recs", recController.postRecs)
-	handleFunc(tokenAuth, "GET /recs/tag/siteMeter", recController.getRecsByTag) // Deprecated. Use /recs?tag=""
-	handleFunc(tokenAuth, "GET /recs/{id}", recController.getRec)
-	handleFunc(tokenAuth, "PUT /recs/{id}", recController.putRec)
-	handleFunc(tokenAuth, "DELETE /recs/{id}", recController.deleteRec)
-	handleFunc(tokenAuth, "GET /recs/{pointId}/history", hisController.getHis)
-	handleFunc(tokenAuth, "POST /recs/{pointId}/history", hisController.postHis)
-	handleFunc(tokenAuth, "DELETE /recs/{pointId}/history", hisController.deleteHis)
-	handleFunc(tokenAuth, "GET /recs/{pointId}/current", currentController.getCurrent)
-	handleFunc(tokenAuth, "POST /recs/{pointId}/current", currentController.postCurrent)
-	server.Handle("/his/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/recs", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/recs/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
-
 	handleFunc(server, "GET /api/auth/token", authController.getAuthToken)
-	handleFunc(tokenAuth, "GET /api/his/{pointId}", hisController.getHis)       // Deprecated
-	handleFunc(tokenAuth, "POST /api/his/{pointId}", hisController.postHis)     // Deprecated
-	handleFunc(tokenAuth, "DELETE /api/his/{pointId}", hisController.deleteHis) // Deprecated
 	handleFunc(tokenAuth, "GET /api/recs", recController.getRecs)
 	handleFunc(tokenAuth, "POST /api/recs", recController.postRecs)
-	handleFunc(tokenAuth, "GET /api/recs/tag/siteMeter", recController.getRecsByTag) // Deprecated. Use /recs?tag=""
 	handleFunc(tokenAuth, "GET /api/recs/{id}", recController.getRec)
 	handleFunc(tokenAuth, "PUT /api/recs/{id}", recController.putRec)
 	handleFunc(tokenAuth, "DELETE /api/recs/{id}", recController.deleteRec)
