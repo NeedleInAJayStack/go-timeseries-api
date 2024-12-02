@@ -61,26 +61,6 @@ func (recController recController) postRecs(w http.ResponseWriter, r *http.Reque
 	w.Write(recJSON)
 }
 
-// GET /recs/tag/:tag
-func (recController recController) getRecsByTag(w http.ResponseWriter, r *http.Request) {
-	recs, err := recController.store.readRecs("siteMeter")
-	if err != nil {
-		log.Printf("Storage Error: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	httpJson, err := json.Marshal(recs)
-	if err != nil {
-		log.Printf("Cannot encode response JSON")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(httpJson)
-}
-
 // GET /recs/:id
 func (recController recController) getRec(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")

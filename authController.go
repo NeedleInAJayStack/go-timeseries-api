@@ -96,3 +96,7 @@ func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+type clientToken struct {
+	Token string `json:"token"`
+}
