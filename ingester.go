@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,6 +15,11 @@ type mqttIngester struct {
 	brokerAddr        string
 	connectionTimeout time.Duration
 	subscribeTimeout  time.Duration
+
+	// Mutable
+	// Stores a list of subject names that have been subscribed to.
+	subjects   map[string][]rec
+	mqttClient mqtt.Client
 }
 
 func newMqttIngester(
@@ -31,55 +37,81 @@ func newMqttIngester(
 	}
 }
 
-func (i mqttIngester) start() {
-	// TODO: Run periodically so that points may be added/removed
-	recs, err := i.recStore.readRecs("mqttSubject")
+func (i mqttIngester) start() error {
+	err := i.connect()
 	if err != nil {
-		log.Fatalf("Error getting mqttSubject points: %s", err)
-		return
+		return err
 	}
 
-	// Configure
-	mqttClient := mqtt.NewClient(mqtt.NewClientOptions().AddBroker(i.brokerAddr))
+	// TODO: Run periodically so that points may be added/removed
+	err = i.fetchSubjects()
+	if err != nil {
+		return err
+	}
 
-	// Connect
-	connectToken := mqttClient.Connect()
+	i.subscribe()
+	return nil
+}
+
+func (i mqttIngester) stop() {
+	for subject, _ := range i.subjects {
+		i.mqttClient.Unsubscribe(subject)
+		i.subjects[subject] = nil
+		log.Printf("Unsubscribed from %s", subject)
+	}
+	i.disconnect()
+}
+
+// Helper methods
+
+func (i mqttIngester) connect() error {
+	i.mqttClient = mqtt.NewClient(mqtt.NewClientOptions().AddBroker(i.brokerAddr))
+	connectToken := i.mqttClient.Connect()
 	if !connectToken.WaitTimeout(i.connectionTimeout) {
-		log.Fatalf("Unable to connect to %s", i.brokerAddr)
+		return fmt.Errorf("unable to connect to %s", i.brokerAddr)
 	}
 	if connectToken.Error() != nil {
-		log.Fatal(connectToken.Error())
+		return connectToken.Error()
 	}
 	log.Printf("Connected to %s", i.brokerAddr)
-	defer func() {
-		mqttClient.Disconnect(1)
-		log.Printf("Disconnected from %s", i.brokerAddr)
-	}()
+	return nil
+}
 
-	// Stores a list of subject names that have been subscribed to. We use a map because go does not have a set type.
-	var subjects = map[string][]rec{}
+func (i mqttIngester) disconnect() {
+	i.mqttClient.Disconnect(1)
+	log.Printf("Disconnected from %s", i.brokerAddr)
+}
+
+func (i mqttIngester) fetchSubjects() error {
+	recs, err := i.recStore.readRecs("mqttSubject")
+	if err != nil {
+		return fmt.Errorf("error getting mqttSubject points: %s", err)
+	}
 	for _, record := range recs {
 		subject, ok := record.Tags["mqttSubject"].(string)
 		if !ok {
-			log.Fatal("Error asserting type for mqttSubject")
+			log.Printf("Error asserting type for mqttSubject")
 		}
-		if subjects[subject] != nil {
-			subjects[subject] = append(subjects[subject], record)
+		if i.subjects[subject] != nil {
+			i.subjects[subject] = append(i.subjects[subject], record)
 		} else {
-			subjects[subject] = []rec{record}
+			i.subjects[subject] = []rec{record}
 		}
 	}
+	return nil
+}
 
-	// Subscribe to each subject
-	for subject, recs := range subjects {
-		subscribeToken := mqttClient.Subscribe(
+// Subscribe to each subject
+func (i mqttIngester) subscribe() {
+	for subject, recs := range i.subjects {
+		subscribeToken := i.mqttClient.Subscribe(
 			subject,
 			0,
 			func(c mqtt.Client, m mqtt.Message) {
 				// TODO: Change messages to JSON
 				// var currentItem currentInput
 				var currentItem float64
-				err = json.Unmarshal(m.Payload(), &currentItem)
+				err := json.Unmarshal(m.Payload(), &currentItem)
 				if err != nil {
 					log.Printf("Cannot decode message JSON: %s", err)
 					return
@@ -97,15 +129,4 @@ func (i mqttIngester) start() {
 		}
 		log.Printf("Subscribed to %s", subject)
 	}
-
-	defer func() {
-		for subject, _ := range subjects {
-			mqttClient.Unsubscribe(subject)
-			log.Printf("Unsubscribed from %s", subject)
-		}
-	}()
-
-	// Blocks indefinitely
-	block := make(chan int)
-	<-block
 }

@@ -81,7 +81,17 @@ func main() {
 	// TODO: Add env var integration
 	mqttBrokerAddr := "tcp://JaysDesktop.local:1883"
 	ingester := newMqttIngester(recStore, currentStore, mqttBrokerAddr)
-	go ingester.start()
+	go func() {
+		err := ingester.start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer ingester.stop()
+
+		// Blocks indefinitely
+		block := make(chan int)
+		<-block
+	}()
 
 	server, err := NewServer(serverConfig)
 	if err != nil {
