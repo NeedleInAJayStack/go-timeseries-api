@@ -60,3 +60,25 @@ func (m *mqttValueEmitter) unsubscribe(source string) {
 	}
 	log.Printf("Unsubscribed from %s", source)
 }
+
+// For testing
+type mockValueEmitter struct {
+	sources []string
+	onEvent func(string, float64)
+}
+
+func (m *mockValueEmitter) subscribe(source string, onEvent func(string, float64)) {
+	m.sources = append(m.sources, source)
+	// Just store the last one, since they should all be the same.
+	m.onEvent = onEvent
+}
+
+func (m *mockValueEmitter) unsubscribe(source string) {
+	// Do nothing
+}
+
+func (m *mockValueEmitter) emit(value float64) {
+	for _, source := range m.sources {
+		m.onEvent(source, value)
+	}
+}
