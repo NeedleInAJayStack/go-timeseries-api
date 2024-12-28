@@ -54,34 +54,40 @@ func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(httpJson)
 }
 
-func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
+func authMiddleware(jwtSecret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var tokenString string
+		var bearerTokenString string
 		for _, headerValue := range r.Header["Authorization"] {
 			if strings.HasPrefix(headerValue, "Bearer ") {
-				tokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
+				bearerTokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
 			}
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		if bearerTokenString != "" {
+			token, err := jwt.Parse(bearerTokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				return []byte(jwtSecret), nil
+			})
+			if err != nil {
+				log.Printf("JWT parsing failed: %s", err)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
 			}
-			return []byte(jwtSecret), nil
-		})
-		if err != nil {
-			log.Printf("JWT parsing failed: %s", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			log.Printf("JWT claims failed: %s", err)
-		}
-		exp, _ := claims.GetExpirationTime()
-		if exp.Before(time.Now()) {
-			log.Printf("JWT expired at: %s", exp)
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok {
+				log.Printf("JWT claims failed: %s", err)
+			}
+			exp, _ := claims.GetExpirationTime()
+			if exp.Before(time.Now()) {
+				log.Printf("JWT expired at: %s", exp)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		} else {
+			log.Printf("Authorization scheme not supported")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
