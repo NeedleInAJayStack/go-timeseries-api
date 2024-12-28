@@ -33,13 +33,16 @@ func (suite *ServerTestSuite) SetupTest() {
 	err = db.AutoMigrate(&gormHis{}, &gormRec{})
 	assert.Nil(suite.T(), err)
 
+	authenticator := singleUserAuthenticator{
+		username: "test",
+		password: "password",
+	}
 	historyStore := newGormHistoryStore(db)
 	recStore := newGormRecStore(db)
 	currentStore := newInMemoryCurrentStore()
 
 	server, err := NewServer(ServerConfig{
-		username:             "test",
-		password:             "password",
+		authenticator:        authenticator,
 		jwtSecret:            "aaa",
 		tokenDurationSeconds: 60,
 

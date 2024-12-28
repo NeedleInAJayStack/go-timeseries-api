@@ -14,28 +14,22 @@ import (
 type authController struct {
 	jwtSecret            string
 	tokenDurationSeconds int
-	username             string
-	password             string
+	authenticator        authenticator
 }
 
 // GET /auth/token
 // Requires basic auth
 func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	reqUsername, reqPassword, _ := r.BasicAuth()
-	if reqUsername != a.username {
-		log.Printf("Invalid username: %s", reqUsername)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	if reqPassword != a.password {
-		log.Printf("Invalid password")
+	valid, err := a.authenticator.authenticate(reqUsername, reqPassword)
+	if !valid {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"subject":  "go",
-		"username": a.username,
+		"username": reqUsername,
 		"exp":      time.Now().Unix() + int64(a.tokenDurationSeconds),
 	})
 	tokenString, err := token.SignedString([]byte(a.jwtSecret))

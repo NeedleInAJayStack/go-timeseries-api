@@ -64,13 +64,16 @@ func main() {
 	go serveMetrics()
 
 	// Stores
+	authenticator := singleUserAuthenticator{
+		username: os.Getenv("USERNAME"),
+		password: os.Getenv("PASSWORD"),
+	}
 	historyStore := newGormHistoryStore(db)
 	recStore := newGormRecStore(db)
 	currentStore := newInMemoryCurrentStore()
 
 	serverConfig := ServerConfig{
-		username:             os.Getenv("USERNAME"),
-		password:             os.Getenv("PASSWORD"),
+		authenticator:        authenticator,
 		jwtSecret:            os.Getenv("JWT_SECRET"),
 		tokenDurationSeconds: 60 * 60, // 1 hour
 

@@ -8,8 +8,7 @@ import (
 
 type ServerConfig struct {
 	// Auth
-	username             string
-	password             string
+	authenticator        authenticator
 	jwtSecret            string
 	tokenDurationSeconds int
 
@@ -27,8 +26,7 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 	authController := authController{
 		jwtSecret:            serverConfig.jwtSecret,
 		tokenDurationSeconds: serverConfig.tokenDurationSeconds,
-		username:             serverConfig.username,
-		password:             serverConfig.password,
+		authenticator:        serverConfig.authenticator,
 	}
 	hisController := hisController{store: serverConfig.historyStore}
 	recController := recController{store: serverConfig.recStore}
