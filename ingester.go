@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +14,7 @@ type ingester struct {
 	// Mutable
 	// Stores a list of subject names that have been subscribed to.
 	topics map[string]map[uuid.UUID]bool
+	mux    *sync.RWMutex
 }
 
 func newIngester(
@@ -24,11 +26,16 @@ func newIngester(
 		valueEmitter: valueEmitter,
 
 		topics: map[string]map[uuid.UUID]bool{},
+		mux:    &sync.RWMutex{},
 	}
 }
 
 func (i *ingester) refreshSubscriptions(recs []rec) {
-	// TODO: Block around this. Data races will occur on `topics` if also running the onMessage
+	// Use read-write lock to avoid modifying topics while onMessage is processing.
+	// TODO: Consider breaking out a separate data structure type for topics.
+	i.mux.Lock()
+	defer i.mux.Unlock()
+
 	recIDs := map[uuid.UUID]bool{}
 	for _, record := range recs {
 		recIDs[record.ID] = true
@@ -79,6 +86,10 @@ func (i *ingester) subscribe(topic string, recID uuid.UUID) {
 	i.valueEmitter.subscribe(
 		topic,
 		func(source string, value float64) {
+			// Ensure that we are not modifying topics while onMessage is processing.
+			i.mux.RLock()
+			defer i.mux.RUnlock()
+
 			recIDs := i.topics[source]
 			for recID, _ := range recIDs {
 				i.currentStore.setCurrent(recID, currentInput{Value: &value})
