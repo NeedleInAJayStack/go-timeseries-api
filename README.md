@@ -9,6 +9,7 @@ Create a `.env` file in this directory that contains necessary environment varia
 ```
 USERNAME=<username>
 PASSWORD=<password>
+API_KEY=<apikey>
 
 HOST=<host>
 PORT=<port>

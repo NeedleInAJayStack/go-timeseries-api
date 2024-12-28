@@ -14,28 +14,22 @@ import (
 type authController struct {
 	jwtSecret            string
 	tokenDurationSeconds int
-	username             string
-	password             string
+	authenticator        authenticator
 }
 
 // GET /auth/token
 // Requires basic auth
 func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	reqUsername, reqPassword, _ := r.BasicAuth()
-	if reqUsername != a.username {
-		log.Printf("Invalid username: %s", reqUsername)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	if reqPassword != a.password {
-		log.Printf("Invalid password")
+	valid, err := a.authenticator.authenticate(reqUsername, reqPassword)
+	if !valid {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"subject":  "go",
-		"username": a.username,
+		"username": reqUsername,
 		"exp":      time.Now().Unix() + int64(a.tokenDurationSeconds),
 	})
 	tokenString, err := token.SignedString([]byte(a.jwtSecret))
@@ -60,34 +54,50 @@ func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(httpJson)
 }
 
-func tokenAuthMiddleware(jwtSecret string, next http.Handler) http.Handler {
+func authMiddleware(jwtSecret string, apiKey string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var tokenString string
+		var bearerTokenString string
+		var apiKeyString string
 		for _, headerValue := range r.Header["Authorization"] {
 			if strings.HasPrefix(headerValue, "Bearer ") {
-				tokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
+				bearerTokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
+			}
+			if strings.HasPrefix(headerValue, "ApiKey ") {
+				apiKeyString, _ = strings.CutPrefix(headerValue, "ApiKey ")
 			}
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		if bearerTokenString != "" {
+			token, err := jwt.Parse(bearerTokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				return []byte(jwtSecret), nil
+			})
+			if err != nil {
+				log.Printf("JWT parsing failed: %s", err)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
 			}
-			return []byte(jwtSecret), nil
-		})
-		if err != nil {
-			log.Printf("JWT parsing failed: %s", err)
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			log.Printf("JWT claims failed: %s", err)
-		}
-		exp, _ := claims.GetExpirationTime()
-		if exp.Before(time.Now()) {
-			log.Printf("JWT expired at: %s", exp)
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok {
+				log.Printf("JWT claims failed: %s", err)
+			}
+			exp, _ := claims.GetExpirationTime()
+			if exp.Before(time.Now()) {
+				log.Printf("JWT expired at: %s", exp)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		} else if apiKey != "" && apiKeyString != "" {
+			if apiKeyString != apiKey {
+				log.Printf("Invalid API key")
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		} else {
+			log.Printf("Authorization scheme not supported")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

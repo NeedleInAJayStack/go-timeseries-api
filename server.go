@@ -8,8 +8,8 @@ import (
 
 type ServerConfig struct {
 	// Auth
-	username             string
-	password             string
+	authenticator        authenticator
+	apiKey               string
 	jwtSecret            string
 	tokenDurationSeconds int
 
@@ -27,8 +27,7 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 	authController := authController{
 		jwtSecret:            serverConfig.jwtSecret,
 		tokenDurationSeconds: serverConfig.tokenDurationSeconds,
-		username:             serverConfig.username,
-		password:             serverConfig.password,
+		authenticator:        serverConfig.authenticator,
 	}
 	hisController := hisController{store: serverConfig.historyStore}
 	recController := recController{store: serverConfig.recStore}
@@ -51,9 +50,9 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 	handleFunc(tokenAuth, "DELETE /api/recs/{pointId}/history", hisController.deleteHis)
 	handleFunc(tokenAuth, "GET /api/recs/{pointId}/current", currentController.getCurrent)
 	handleFunc(tokenAuth, "POST /api/recs/{pointId}/current", currentController.postCurrent)
-	server.Handle("/api/his/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/api/recs", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/api/recs/", tokenAuthMiddleware(serverConfig.jwtSecret, tokenAuth))
+	server.Handle("/api/his/", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
+	server.Handle("/api/recs", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
+	server.Handle("/api/recs/", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
 
 	// Catch all others with public files. Not found fallback is app index for browser router.
 	server.Handle("/app/", fileServerWithFallback(http.Dir("./public"), "./public/app/index.html"))
