@@ -74,6 +74,7 @@ func main() {
 
 	serverConfig := ServerConfig{
 		authenticator:        authenticator,
+		apiKey:               os.Getenv("API_KEY"),
 		jwtSecret:            os.Getenv("JWT_SECRET"),
 		tokenDurationSeconds: 60 * 60, // 1 hour
 

@@ -9,6 +9,7 @@ import (
 type ServerConfig struct {
 	// Auth
 	authenticator        authenticator
+	apiKey               string
 	jwtSecret            string
 	tokenDurationSeconds int
 
@@ -49,9 +50,9 @@ func NewServer(serverConfig ServerConfig) (http.Handler, error) {
 	handleFunc(tokenAuth, "DELETE /api/recs/{pointId}/history", hisController.deleteHis)
 	handleFunc(tokenAuth, "GET /api/recs/{pointId}/current", currentController.getCurrent)
 	handleFunc(tokenAuth, "POST /api/recs/{pointId}/current", currentController.postCurrent)
-	server.Handle("/api/his/", authMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/api/recs", authMiddleware(serverConfig.jwtSecret, tokenAuth))
-	server.Handle("/api/recs/", authMiddleware(serverConfig.jwtSecret, tokenAuth))
+	server.Handle("/api/his/", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
+	server.Handle("/api/recs", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
+	server.Handle("/api/recs/", authMiddleware(serverConfig.jwtSecret, serverConfig.apiKey, tokenAuth))
 
 	// Catch all others with public files. Not found fallback is app index for browser router.
 	server.Handle("/app/", fileServerWithFallback(http.Dir("./public"), "./public/app/index.html"))

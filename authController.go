@@ -54,12 +54,16 @@ func (a authController) getAuthToken(w http.ResponseWriter, r *http.Request) {
 	w.Write(httpJson)
 }
 
-func authMiddleware(jwtSecret string, next http.Handler) http.Handler {
+func authMiddleware(jwtSecret string, apiKey string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var bearerTokenString string
+		var apiKeyString string
 		for _, headerValue := range r.Header["Authorization"] {
 			if strings.HasPrefix(headerValue, "Bearer ") {
 				bearerTokenString, _ = strings.CutPrefix(headerValue, "Bearer ")
+			}
+			if strings.HasPrefix(headerValue, "ApiKey ") {
+				apiKeyString, _ = strings.CutPrefix(headerValue, "ApiKey ")
 			}
 		}
 
@@ -83,6 +87,12 @@ func authMiddleware(jwtSecret string, next http.Handler) http.Handler {
 			exp, _ := claims.GetExpirationTime()
 			if exp.Before(time.Now()) {
 				log.Printf("JWT expired at: %s", exp)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		} else if apiKey != "" && apiKeyString != "" {
+			if apiKeyString != apiKey {
+				log.Printf("Invalid API key")
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

@@ -45,6 +45,7 @@ func (suite *ServerTestSuite) SetupTest() {
 		authenticator:        authenticator,
 		jwtSecret:            "aaa",
 		tokenDurationSeconds: 60,
+		apiKey:               "valid",
 
 		historyStore: historyStore,
 		recStore:     recStore,
@@ -89,6 +90,26 @@ func (suite *ServerTestSuite) TestGetAuthTokenInvalidPassword() {
 	suite.server.ServeHTTP(response, request)
 
 	assert.Equal(suite.T(), response.Code, http.StatusForbidden)
+}
+
+func (suite *ServerTestSuite) TestApiKey() {
+	request, _ := http.NewRequest(http.MethodGet, "/api/recs", nil)
+	request.Header.Add("Authorization", fmt.Sprintf("ApiKey %s", "valid"))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), http.StatusOK, response.Code)
+}
+
+func (suite *ServerTestSuite) TestApiKeyInvalid() {
+	request, _ := http.NewRequest(http.MethodGet, "/api/recs", nil)
+	request.Header.Add("Authorization", fmt.Sprintf("ApiKey %s", "invalid"))
+	response := httptest.NewRecorder()
+
+	suite.server.ServeHTTP(response, request)
+
+	assert.Equal(suite.T(), http.StatusUnauthorized, response.Code)
 }
 
 func (suite *ServerTestSuite) TestGetHis() {
