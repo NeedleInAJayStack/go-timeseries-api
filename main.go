@@ -54,7 +54,7 @@ func main() {
 		metric.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
-				semconv.ServiceName("api-server"),
+				semconv.ServiceName("timeseries-api"),
 				semconv.ServiceVersion("0.1.0"),
 			),
 		),

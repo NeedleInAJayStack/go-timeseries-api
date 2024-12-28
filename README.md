@@ -1,6 +1,6 @@
-# API Server
+# Timeseries API Server
 
-This is Jay's API for different datasets. It requires a Timescale DB instance.
+This is Jay's Timeseries API server. It requires a Timescale DB instance.
 
 ## Getting Started
 

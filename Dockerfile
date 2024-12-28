@@ -5,14 +5,14 @@ WORKDIR /project
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
-RUN go build -o api-server
+RUN go build -o timeseries-api
 
 # Distribution image
-FROM ubuntu AS api-server
+FROM ubuntu AS timeseries-api
 WORKDIR /project
 
-COPY --from=build /project/api-server ./
+COPY --from=build /project/timeseries-api ./
 COPY public ./public
 
 EXPOSE 80
-ENTRYPOINT [ "./api-server" ]
+ENTRYPOINT [ "./timeseries-api" ]
