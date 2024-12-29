@@ -12,7 +12,7 @@ type ingester struct {
 	valueEmitter valueEmitter
 
 	// Mutable
-	// Stores a list of subject names that have been subscribed to.
+	// Stores a list of topic names that have been subscribed to.
 	topics map[string]map[uuid.UUID]bool
 	mux    *sync.RWMutex
 }
@@ -43,9 +43,9 @@ func (i *ingester) refreshSubscriptions(recs []rec) {
 
 	toSubscribe := []topicAndId{}
 	for _, record := range recs {
-		topic, ok := record.Tags["mqttSubject"].(string)
+		topic, ok := record.Tags["mqttTopic"].(string)
 		if !ok {
-			log.Printf("Error asserting type for mqttSubject")
+			log.Printf("Error asserting type for mqttTopic")
 			continue
 		}
 

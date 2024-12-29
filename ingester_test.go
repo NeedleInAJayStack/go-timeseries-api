@@ -37,19 +37,19 @@ func (suite *IngesterTestSuite) TestIngester() {
 	rec1 := rec{
 		ID: uuid.New(),
 		Tags: map[string]interface{}{
-			"mqttSubject": "test",
+			"mqttTopic": "test",
 		},
 	}
 	rec2 := rec{
 		ID: uuid.New(),
 		Tags: map[string]interface{}{
-			"mqttSubject": "test",
+			"mqttTopic": "test",
 		},
 	}
 	rec3 := rec{
 		ID: uuid.New(),
 		Tags: map[string]interface{}{
-			"mqttSubject": "test2",
+			"mqttTopic": "test2",
 		},
 	}
 

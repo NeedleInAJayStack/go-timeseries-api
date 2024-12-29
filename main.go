@@ -109,9 +109,9 @@ func main() {
 		currentStore,
 		&valueEmitter,
 	)
-	recs, err := recStore.readRecs("mqttSubject")
+	recs, err := recStore.readRecs("mqttTopic")
 	if err != nil {
-		log.Fatalf("error getting mqttSubject points: %s", err)
+		log.Fatalf("error getting mqttTopic points: %s", err)
 	}
 	ingester.refreshSubscriptions(recs)
 
