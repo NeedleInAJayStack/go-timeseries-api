@@ -1,0 +1,397 @@
+openapi: 3.1.0
+info:
+  title: Timeseries API
+  description: Jay's Timeseries API
+  version: 0.1.0
+
+servers:
+  - url: https://data.herron.dev/
+
+paths:
+  /api/auth/token:
+    get:
+      summary: Get a signed authentication token
+      security:
+        - basicAuth: []
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: The signed authentication token
+        "403":
+          description: Authorization failed
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/recs:
+    get:
+      summary: Get all records, filtering by optional tag
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: tag
+          description: A tag that the record must contain
+          in: query 
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rec"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a new record
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rec"
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rec"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/recs/{id}:
+    get:
+      summary: Get a record by ID
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rec"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Update a record by ID
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rec"
+      responses:
+        "200":
+          description: Request successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete a record by ID
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/recs/{id}/current:
+    get:
+      summary: Get the current value of a record by ID
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Current"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Record a new current value for a record by ID
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CurrentInput"
+      responses:
+        "200":
+          description: Request successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/recs/{id}/history:
+    get:
+      summary: Get the historical values of a record
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: start
+          description: The beginning of the time span to return. Inclusive. If not included, data is not filtered by start time.
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: end
+          description: The end of the time span to return. Exclusive. If not included, data is not filtered by end time.
+          in: query
+          required: false
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Request successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/History"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Record a new historical value for a record
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/History"
+      responses:
+        "200":
+          description: Request successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Delete historical values for a record
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          description: The UUID of the record
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: start
+          description: The beginning of the time span to delete. Inclusive. If not included, data is not filtered by start time.
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: end
+          description: The end of the time span to delete. Exclusive. If not included, data is not filtered by end time.
+          in: query
+          required: false
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Request successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  responses:
+    BadRequest:
+      description: Bad request
+    Unauthorized:
+      description: Unauthorized
+    NotFound:
+      description: Not found
+    InternalServerError:
+      description: Server error. See server logs.
+  schemas:
+    Rec:
+      type: object
+      properties:
+        id:
+          type: string
+          description: UUID identifier of the record
+        dis:
+          type: string
+          description: Display name
+        tags:
+          type: object
+          description: Dictionary of freeform tag/value pairs
+        unit:
+          type: string
+          description: Unit of measure
+      required:
+        - id
+    Current:
+      type: object
+      properties:
+        ts:
+          type: number
+          description: Timestamp when the current value was recorded. In Unix time.
+        value:
+          type: number
+          description: The current value
+      required:
+        - ts
+    CurrentInput:
+      type: object
+      properties:
+        value:
+          type: number
+          description: The current value
+      required:
+        - ts
+    History:
+      type: object
+      properties:
+        ts:
+          type: number
+          description: Timestamp when the current value was recorded. In Unix time.
+        value:
+          type: number
+          description: The current value
+      required:
+        - ts
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
