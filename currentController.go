@@ -29,7 +29,12 @@ func (h currentController) getCurrent(w http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	httpResult := h.store.getCurrent(pointId)
+	httpResult, err := h.store.getCurrent(pointId)
+	if err != nil {
+		log.Printf("Cannot retrieve current value")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	httpJson, err := json.Marshal(httpResult)
 	if err != nil {
@@ -61,7 +66,12 @@ func (h currentController) postCurrent(writer http.ResponseWriter, request *http
 		return
 	}
 
-	h.store.setCurrent(pointId, currentItem)
+	err = h.store.setCurrent(pointId, currentItem)
+	if err != nil {
+		log.Printf("Cannot save current value")
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	writer.WriteHeader(http.StatusOK)
 }

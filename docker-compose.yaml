@@ -6,15 +6,15 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_HOST=db
+      - DATABASE_HOST=postgres
     ports:
       - '8080:80'
       - '2112:2112' # Metrics
     volumes:
       - .env:/project/.env
     depends_on:
-      - db
-  db:
+      - postgres
+  postgres:
     image: timescale/timescaledb:latest-pg16
     restart: unless-stopped
     volumes:
@@ -26,6 +26,11 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - '${DATABASE_PORT:-5432}:5432'
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
 
 volumes:
   db_data:
