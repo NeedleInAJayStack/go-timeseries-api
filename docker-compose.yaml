@@ -1,5 +1,7 @@
 services:
   timeseries-api:
+    profiles:
+      - local
     build:
       context: .
       dockerfile: Dockerfile
