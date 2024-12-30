@@ -11,6 +11,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -70,7 +71,25 @@ func main() {
 	}
 	historyStore := newGormHistoryStore(db)
 	recStore := newGormRecStore(db)
-	currentStore := newInMemoryCurrentStore()
+
+	var currentStore currentStore
+	currentStoreType := envOrDefault("CURRENT_STORE_TYPE", "memory")
+	if currentStoreType == "redis" {
+		redisDatabase, err := strconv.Atoi(envOrDefault("REDIS_DATABASE", "0"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     envOrDefault("REDIS_ADDRESS", "localhost:6379"),
+			Password: envOrDefault("REDIS_PASSWORD", ""),
+			DB:       redisDatabase,
+		})
+		currentStore = newRedisCurrentStore(redisClient)
+	} else if currentStoreType == "memory" {
+		currentStore = newInMemoryCurrentStore()
+	} else {
+		log.Fatalf("Unknown current store type: %s", currentStoreType)
+	}
 
 	serverConfig := ServerConfig{
 		authenticator:        authenticator,
