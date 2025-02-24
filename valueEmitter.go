@@ -9,7 +9,7 @@ import (
 )
 
 type valueEmitter interface {
-	subscribe(source string, onEvent func(string, float64))
+	subscribe(source string) chan float64
 	unsubscribe(source string)
 }
 
@@ -31,7 +31,8 @@ func newMQTTValueEmitter(
 	}
 }
 
-func (m *mqttValueEmitter) subscribe(source string, onEvent func(string, float64)) {
+func (m *mqttValueEmitter) subscribe(source string) chan float64 {
+	channel := make(chan float64)
 	subscribeToken := m.mqttClient.Subscribe(source, 0, func(c mqtt.Client, m mqtt.Message) {
 		var value float64
 		err := json.Unmarshal(m.Payload(), &value)
@@ -39,7 +40,7 @@ func (m *mqttValueEmitter) subscribe(source string, onEvent func(string, float64
 			log.Printf("Cannot decode message JSON: %s", err)
 			return
 		}
-		onEvent(source, value)
+		channel <- value
 	})
 	if !subscribeToken.WaitTimeout(m.subscribeTimeout) {
 		log.Printf("Unable to subscribe to %s", source)
@@ -48,6 +49,7 @@ func (m *mqttValueEmitter) subscribe(source string, onEvent func(string, float64
 		log.Print(subscribeToken.Error())
 	}
 	log.Printf("Subscribed to %s", source)
+	return channel
 }
 
 func (m *mqttValueEmitter) unsubscribe(source string) {
@@ -63,22 +65,28 @@ func (m *mqttValueEmitter) unsubscribe(source string) {
 
 // For testing
 type mockValueEmitter struct {
-	sources []string
-	onEvent func(string, float64)
+	sources map[string]chan float64
 }
 
-func (m *mockValueEmitter) subscribe(source string, onEvent func(string, float64)) {
-	m.sources = append(m.sources, source)
-	// Just store the last one, since they should all be the same.
-	m.onEvent = onEvent
+func newMockValueEmitter() mockValueEmitter {
+	return mockValueEmitter{
+		sources: make(map[string]chan float64),
+	}
+}
+
+func (m *mockValueEmitter) subscribe(source string) chan float64 {
+	channel := make(chan float64)
+	m.sources[source] = channel
+	return channel
 }
 
 func (m *mockValueEmitter) unsubscribe(source string) {
-	// Do nothing
+	close(m.sources[source])
+	m.sources[source] = nil
 }
 
 func (m *mockValueEmitter) emit(value float64) {
 	for _, source := range m.sources {
-		m.onEvent(source, value)
+		source <- value
 	}
 }

@@ -83,19 +83,19 @@ func (i *ingester) refreshSubscriptions(recs []rec) {
 
 // Subscribe to a topic, and associate the rec with the topic
 func (i *ingester) subscribe(topic string, recID uuid.UUID) {
-	i.valueEmitter.subscribe(
-		topic,
-		func(source string, value float64) {
-			// Ensure that we are not modifying topics while onMessage is processing.
-			i.mux.RLock()
-			defer i.mux.RUnlock()
+	channel := i.valueEmitter.subscribe(topic)
 
-			recIDs := i.topics[source]
+	go func() {
+		for {
+			msg := <-channel
+			i.mux.RLock()
+			recIDs := i.topics[topic]
 			for recID, _ := range recIDs {
-				i.currentStore.setCurrent(recID, currentInput{Value: &value})
+				i.currentStore.setCurrent(recID, currentInput{Value: &msg})
 			}
-		},
-	)
+			i.mux.RUnlock()
+		}
+	}()
 
 	_, present := i.topics[topic]
 	if present {

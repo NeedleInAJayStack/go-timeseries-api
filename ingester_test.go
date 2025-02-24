@@ -21,7 +21,7 @@ func TestIngesterTestSuite(t *testing.T) {
 
 func (suite *IngesterTestSuite) SetupTest() {
 	currentStore := newInMemoryCurrentStore()
-	valueEmitter := mockValueEmitter{}
+	valueEmitter := newMockValueEmitter()
 	ingester := newIngester(
 		currentStore,
 		&valueEmitter,
