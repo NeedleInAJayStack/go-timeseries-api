@@ -9,6 +9,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -110,6 +111,7 @@ func main() {
 
 	options := mqtt.NewClientOptions()
 	options.AddBroker(mqttAddress)
+	options.SetClientID(uuid.NewString())
 	options.SetUsername(mqttUsername)
 	options.SetPassword(mqttPassword)
 	mqttClient := mqtt.NewClient(options)
